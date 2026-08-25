@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Chapter Two</title>
+    <style>
+      @page {
+        size: 100mm 100mm;
+        margin: 10mm;
+        @bottom-center {
+          content: counter(page);
+        }
+      }
+
+      body {
+        margin: 0;
+      }
+
+      h1 {
+        break-before: right;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 id="chapter-two">Chapter Two</h1>
+    <p>This heading must start on the third page.</p>
+  </body>
+</html>

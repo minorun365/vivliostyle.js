@@ -1,0 +1,15 @@
+{
+  "@context": ["https://schema.org", "https://www.w3.org/ns/pub-context"],
+  "type": "Book",
+  "name": "Forced break before a later flow chunk",
+  "readingOrder": [
+    {
+      "url": "chapter-one.html",
+      "name": "Chapter One"
+    },
+    {
+      "url": "chapter-two.html",
+      "name": "Chapter Two"
+    }
+  ]
+}

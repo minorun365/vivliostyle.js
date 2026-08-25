@@ -125,4 +125,36 @@ describe("break", function () {
       expect(resolveEffectiveBreakValue("auto", "auto")).toBe("auto");
     });
   });
+
+  describe("shouldForceBreakBeforeFlowChunk", function () {
+    var shouldForceBreakBeforeFlowChunk =
+      vivliostyle_break.shouldForceBreakBeforeFlowChunk;
+
+    it("honors a forced break at the start of a later flow chunk", function () {
+      expect(shouldForceBreakBeforeFlowChunk(false, 20, 20, "right")).toBe(
+        true,
+      );
+    });
+
+    it("does not repeat the break at the leading edge of the next page", function () {
+      expect(shouldForceBreakBeforeFlowChunk(true, 20, 20, "right")).toBe(
+        false,
+      );
+    });
+
+    it("does not break a flow chunk that has already started", function () {
+      expect(shouldForceBreakBeforeFlowChunk(false, 21, 20, "right")).toBe(
+        false,
+      );
+    });
+
+    it("ignores non-forced break values", function () {
+      expect(shouldForceBreakBeforeFlowChunk(false, 20, 20, "auto")).toBe(
+        false,
+      );
+      expect(shouldForceBreakBeforeFlowChunk(false, 20, 20, "avoid")).toBe(
+        false,
+      );
+    });
+  });
 });

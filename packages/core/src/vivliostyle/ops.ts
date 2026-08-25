@@ -1887,6 +1887,29 @@ export class StyleInstance
               }
             }
             const flowChunk = selected.flowChunk;
+
+            // updateStartSide() resolves break-before only for the first flow
+            // chunk available at the start of a page. A later flow chunk can
+            // become available after the preceding one is fully consumed in
+            // this column, notably when target-counter()/target-text()
+            // relayout has advanced lookupOffset. Honor its forced break
+            // before laying it out in the same column.
+            if (
+              Break.shouldForceBreakBeforeFlowChunk(
+                leadingEdge,
+                this.getNodePositionOffset(selected.chunkPosition.primary),
+                flowChunk.startOffset,
+                flowChunk.breakBefore,
+              )
+            ) {
+              column.pageBreakType = flowChunk.breakBefore;
+              flowPosition.startBreakType = Break.breakValueToStartBreakType(
+                flowChunk.breakBefore,
+              );
+              loopFrame.breakLoop();
+              return;
+            }
+
             let pending = true;
             column
               .layout(

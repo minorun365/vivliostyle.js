@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Chapter One</title>
+    <style>
+      @page {
+        size: 100mm 100mm;
+        margin: 10mm;
+        @bottom-center {
+          content: counter(page);
+        }
+      }
+
+      body {
+        margin: 0;
+      }
+
+      a::after {
+        content: target-counter(attr(href), page);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Chapter One</h1>
+    <p>
+      The next chapter starts on page
+      <a href="chapter-two.html#chapter-two"></a>.
+    </p>
+    <p>This sentence must remain on the first page.</p>
+  </body>
+</html>

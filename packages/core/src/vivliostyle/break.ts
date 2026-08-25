@@ -260,4 +260,17 @@ export function breakValueToStartBreakType(breakValue: string | null): string {
     : "auto";
 }
 
+export function shouldForceBreakBeforeFlowChunk(
+  leadingEdge: boolean,
+  positionOffset: number,
+  flowChunkStartOffset: number,
+  breakBefore: string | null,
+): boolean {
+  return (
+    !leadingEdge &&
+    positionOffset === flowChunkStartOffset &&
+    isForcedBreakValue(breakBefore)
+  );
+}
+
 Plugin.registerHook("SIMPLE_PROPERTY", convertPageBreakAliases);

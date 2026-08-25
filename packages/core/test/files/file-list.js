@@ -776,6 +776,11 @@ module.exports = [
         title: "Page break between flow elements",
       },
       {
+        file: "page_breaks/flow-chunk-break-before/publication.json",
+        title:
+          "Forced break before a later flow chunk after target-counter() reflow",
+      },
+      {
         file: "page_breaks/break_on_pseudo_of_flow_elements.html",
         title: "Break on pseudoelements of flow elements",
       },
