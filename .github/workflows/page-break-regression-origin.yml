@@ -1,7 +1,9 @@
 name: Page break regression origin
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - diagnostic/page-break-regression-origin
 
 permissions:
   contents: read
