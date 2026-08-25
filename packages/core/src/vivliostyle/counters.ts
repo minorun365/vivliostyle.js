@@ -434,6 +434,21 @@ class CounterResolver implements CssCascade.CounterResolver {
             if (pageCounters) {
               this.counterStore.resolveReference(transformedId);
             }
+            const targetPageIndex =
+              this.counterStore.pageIndicesById[transformedId];
+            if (name === "page" && targetPageIndex?.pageIndex >= 14) {
+              const traces = ((globalThis as any).__countertraceEvals ??= []);
+              traces.push({
+                kind: "element",
+                  transformedId,
+                  targetPageIndex,
+                  elementCounters: countersOfName,
+                  pageCounters: pageCounters?.[name] ?? null,
+                  docStartCounters: docStartCounters?.[name] ?? null,
+                  adjusted,
+                  result: adjusted[adjusted.length - 1] || null,
+              });
+            }
             return format(adjusted[adjusted.length - 1] || null);
           } else {
             const pageCounters = this.getTargetPageCounters(transformedId);
@@ -443,6 +458,21 @@ class CounterResolver implements CssCascade.CounterResolver {
 
               if (pageCounters[name]) {
                 const pageCountersOfName = pageCounters[name];
+                const targetPageIndex =
+                  this.counterStore.pageIndicesById[transformedId];
+                if (name === "page" && targetPageIndex?.pageIndex >= 14) {
+                  const traces = ((globalThis as any).__countertraceEvals ??=
+                    []);
+                  traces.push({
+                    kind: "page",
+                      transformedId,
+                      targetPageIndex,
+                      pageCounters: pageCountersOfName,
+                      result:
+                        pageCountersOfName[pageCountersOfName.length - 1] ||
+                        null,
+                  });
+                }
                 return format(
                   pageCountersOfName[pageCountersOfName.length - 1] || null,
                 );
@@ -1376,6 +1406,40 @@ export class CounterStore {
         }
         this.pageIndicesById[id] = { spineIndex, pageIndex };
       });
+    }
+    if (
+      pageIndex === 15 &&
+      this.currentPage.container.textContent?.includes("第1章のまとめ")
+    ) {
+      const targetEvaluations = (
+        (globalThis as any).__countertraceEvals ?? []
+      )
+        .filter((evaluation: { transformedId?: string }) =>
+          !!evaluation.transformedId && ids.includes(evaluation.transformedId),
+        )
+        .slice(-20);
+      console.error(
+        "[COUNTERTRACE] final-summary-state",
+        JSON.stringify({
+          spineIndex,
+          pageIndex,
+          ids,
+          currentPageCounters: this.currentPageCounters["page"] ?? null,
+          currentPageDocCounters:
+            this.currentPageDocCounters?.["page"] ?? null,
+          targets: ids.map((id) => ({
+            id,
+            index: this.pageIndicesById[id] ?? null,
+            elementCounters: this.countersById[id]?.["page"] ?? null,
+            pageCounters: this.pageCountersById[id]?.["page"] ?? null,
+            pageDocCounters: this.pageDocCountersById[id]?.["page"] ?? null,
+            resolved: this.resolvedReferences[id]?.length ?? 0,
+            unresolved: this.unresolvedReferences[id]?.length ?? 0,
+          })),
+          truncate: (globalThis as any).__countertraceTruncate ?? null,
+          evaluations: targetEvaluations,
+        }),
+      );
     }
     const prevPageCounters = this.previousPageCounters;
     let ref: TargetCounterReference | undefined;

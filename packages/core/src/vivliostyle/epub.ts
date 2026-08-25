@@ -2481,6 +2481,20 @@ export class OPFView implements Vgen.CustomRendererFactory {
         // stale following pages and their saved starts before storing the new
         // final page in the requested slot.
         const finalLength = pageIndexToRender + 1;
+        if (viewItem.pages.length > finalLength) {
+          (globalThis as any).__countertraceTruncate = {
+            spineIndex: viewItem.item.spineIndex,
+            pageIndexToRender,
+            finalLength,
+            oldPagesLength: viewItem.pages.length,
+            oldLayoutPositionsLength: viewItem.layoutPositions.length,
+            oldPageCounterStartsLength: viewItem.pageCounterStarts.length,
+            storedStart:
+              viewItem.pageCounterStarts[pageIndexToRender]?.["page"] ?? null,
+            currentPageCounters:
+              this.counterStore.currentPageCounters["page"] ?? null,
+          };
+        }
         viewItem.pages
           .slice(finalLength)
           .forEach((stalePage) => stalePage.container.remove());
