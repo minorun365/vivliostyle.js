@@ -1355,6 +1355,15 @@ export class CounterStore {
           oldPageIndex.pageIndex > pageIndex &&
           !this.targetsMovedEarlierAfterPageBreak.has(id);
         if (movedEarlierAfterPageBreak) {
+          console.warn(
+            "[PBTRACE] target-moved-earlier",
+            JSON.stringify({
+              id,
+              oldPageIndex: oldPageIndex.pageIndex,
+              pageIndex,
+              resolvedReferenceCount: this.resolvedReferences[id]?.length ?? 0,
+            }),
+          );
           this.targetsMovedEarlierAfterPageBreak.add(id);
         }
         if (movedLater || movedEarlierAfterPageBreak) {

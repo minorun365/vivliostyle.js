@@ -2441,6 +2441,20 @@ export class OPFView implements Vgen.CustomRendererFactory {
       Task.newFrame("renderSinglePage");
 
     const pageIndexToRender = pos ? Math.max(pos.page, 0) : 0;
+    if (pageIndexToRender >= 28 && pageIndexToRender <= 38) {
+      console.warn(
+        "[PBTRACE] render-start",
+        JSON.stringify({
+          pageIndexToRender,
+          posPage: pos?.page ?? null,
+          posOffset: pos ? viewItem.instance.getPosition(pos, true) : null,
+          oldText: viewItem.pages[pageIndexToRender]?.container.textContent
+            ?.replace(/\s+/g, " ")
+            .trim()
+            .slice(-120),
+        }),
+      );
+    }
     const pageNumberContextDepth =
       viewItem.instance.getPageNumberContextDepth();
     // Issue #2013: preserve the current render slot's page number so
@@ -2479,6 +2493,20 @@ export class OPFView implements Vgen.CustomRendererFactory {
       const pageIndex = pos
         ? pos.page - 1
         : viewItem.layoutPositions.length - 1;
+      if (pageIndex >= 28 && pageIndex <= 38) {
+        console.warn(
+          "[PBTRACE] render-end",
+          JSON.stringify({
+            pageIndex,
+            nextPage: pos?.page ?? null,
+            nextOffset: pos ? viewItem.instance.getPosition(pos, true) : null,
+            text: page.container.textContent
+              ?.replace(/\s+/g, " ")
+              .trim()
+              .slice(-160),
+          }),
+        );
+      }
       this.finishPageContainer(viewItem, page, pageIndex);
       this.counterStore.finishPage(page.spineIndex, pageIndex);
 
