@@ -1,0 +1,32 @@
+name: Page break regression origin
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+      - run: npx playwright install chromium --with-deps
+      - run: |
+          yarn test:layout-regression \
+            --test-url https://raw.githubusercontent.com/minorun365/vivliostyle.js/fix/consume-satisfied-page-break/packages/core/test/files/page_breaks/break-before-flex-at-page-start.html \
+            --actual-viewer v2.41.0 \
+            --baseline-viewer v2.40.0 \
+            --skip-screenshots \
+            --concurrency 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: page-break-regression-origin
+          path: artifacts/layout-regression/
+          retention-days: 1
