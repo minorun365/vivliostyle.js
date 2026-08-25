@@ -1871,6 +1871,33 @@ export class CounterStore {
       node.textContent = this.pagesCounterExprs[i].format([pages]);
     }
 
+    // A target that is allowed to move one page earlier after an already
+    // satisfied forced break keeps its existing reference pages stable. Patch
+    // those target-counter() nodes from the final target snapshots instead of
+    // recursively repaginating from an earlier reference page while the
+    // target page is still being laid out.
+    const movedEarlierTargetNodes = viewport.root.querySelectorAll(
+      `[${TARGET_COUNTER_ATTR}]`,
+    );
+    for (const node of movedEarlierTargetNodes) {
+      const key = node.getAttribute(TARGET_COUNTER_ATTR);
+      const expr = this.targetCounterExprs.find((o) => o.expr.key === key);
+      if (
+        !expr?.transformedId ||
+        !this.targetsMovedEarlierAfterPageBreak.has(expr.transformedId)
+      ) {
+        continue;
+      }
+      const counterValues = this.pageCountersById[expr.transformedId]?.[
+        expr.name
+      ];
+      if (counterValues) {
+        node.textContent = expr.format(
+          counterValues[counterValues.length - 1],
+        );
+      }
+    }
+
     const runningNodes = viewport.root.querySelectorAll(
       `[${TARGET_COUNTER_IN_RUNNING_ATTR}]`,
     );

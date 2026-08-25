@@ -76,7 +76,7 @@ describe("cross-reference layout constraint", function () {
     expect(constraint.allowLayoutAfterPageBreak(nodeContext)).toBe(false);
   });
 
-  it("re-resolves references when a target moves to an earlier page", function () {
+  it("keeps references stable when a target moves to an earlier page", function () {
     const store = new Counters.CounterStore(documentURLTransformer);
     const reference = new Counters.TargetCounterReference("target", true);
     store.pageIndicesById.target = { spineIndex: 0, pageIndex: 2 };
@@ -95,14 +95,50 @@ describe("cross-reference layout constraint", function () {
 
     store.finishPage(0, 1);
 
-    expect(reference.isResolved()).toBe(false);
-    expect(store.resolvedReferences.target).toEqual([]);
-    expect(store.unresolvedReferences.target).toEqual([reference]);
+    expect(reference.isResolved()).toBe(true);
+    expect(store.resolvedReferences.target).toEqual([reference]);
+    expect(store.unresolvedReferences.target).toBeUndefined();
 
     store.pageIndicesById.target = { spineIndex: 0, pageIndex: 1 };
     const earlierConstraint = store.createLayoutConstraint(0);
     expect(earlierConstraint.allowLayoutAfterPageBreak(nodeContext)).toBe(
       false,
     );
+  });
+
+  it("updates target counters after a target moves to an earlier page", function () {
+    const store = new Counters.CounterStore(documentURLTransformer);
+    const reference = new Counters.TargetCounterReference("target", true);
+    store.pageIndicesById.target = { spineIndex: 0, pageIndex: 2 };
+    store.resolvedReferences.target = [reference];
+    store.currentPageCounters.page = [2];
+
+    const pageContainer = document.createElement("div");
+    const page = new Vtree.Page(pageContainer, pageContainer);
+    const target = document.createElement("h2");
+    target.id = "target";
+    page.elementsById.target = [target];
+    store.currentPage = page;
+    store.finishPage(0, 1);
+
+    const expression = { key: "target-counter-key" };
+    store.registerTargetCounterExpr(
+      "page",
+      (value) => String(value),
+      expression,
+      "target",
+    );
+    const root = document.createElement("div");
+    const targetCounter = document.createElement("span");
+    targetCounter.setAttribute(
+      Counters.TARGET_COUNTER_ATTR,
+      expression.key,
+    );
+    targetCounter.textContent = "3";
+    root.appendChild(targetCounter);
+
+    store.finishLastPage({ root, contentContainer: root });
+
+    expect(targetCounter.textContent).toBe("2");
   });
 });
