@@ -1357,7 +1357,7 @@ export class CounterStore {
         if (movedEarlierAfterPageBreak) {
           this.targetsMovedEarlierAfterPageBreak.add(id);
         }
-        if (movedLater || movedEarlierAfterPageBreak) {
+        if (movedLater) {
           const resolvedRefs = this.resolvedReferences[id];
           if (resolvedRefs) {
             let unresolvedRefs = this.unresolvedReferences[id];
