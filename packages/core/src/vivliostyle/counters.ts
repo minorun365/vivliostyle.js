@@ -1963,7 +1963,38 @@ class LayoutConstraint implements Layout.LayoutConstraint {
       return true;
     }
     const id = this.getReferencedTargetId(nodeContext);
-    return !!id && this.counterStore.canTargetMoveEarlierAfterPageBreak(id);
+    const allowed =
+      !!id && this.counterStore.canTargetMoveEarlierAfterPageBreak(id);
+    if (
+      allowed &&
+      (id.includes("第章のまとめ") ||
+        id.includes("%E7%AC%AC%E7%AB%A0%E3%81%AE%E3%81%BE%E3%81%A8%E3%82%81"))
+    ) {
+      const chain = [];
+      for (let nc: Vtree.NodeContext | null = nodeContext; nc; nc = nc.parent) {
+        chain.push({
+          name: nc.sourceNode?.nodeName,
+          id: (nc.sourceNode as Element)?.id || null,
+          after: nc.after,
+          offsetInNode: nc.offsetInNode,
+          breakBefore: nc.breakBefore,
+        });
+      }
+      console.error(
+        "[PBTRACE] allow-summary-earlier",
+        JSON.stringify({
+          id,
+          layoutPageIndex: this.pageIndex,
+          oldPageIndex: this.counterStore.pageIndicesById[id]?.pageIndex,
+          chain,
+          currentPageText: this.counterStore.currentPage?.container.textContent
+            ?.replace(/\s+/g, " ")
+            .trim()
+            .slice(-300),
+        }),
+      );
+    }
+    return allowed;
   }
 
   allowLayout(nodeContext: Vtree.NodeContext): boolean {
