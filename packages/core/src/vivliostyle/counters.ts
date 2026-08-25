@@ -1362,6 +1362,13 @@ export class CounterStore {
               oldPageIndex: oldPageIndex.pageIndex,
               pageIndex,
               resolvedReferenceCount: this.resolvedReferences[id]?.length ?? 0,
+              currentPageText: this.currentPage.container.textContent
+                ?.replace(/\s+/g, " ")
+                .trim()
+                .slice(-240),
+              currentPageHtml: this.currentPage.container.innerHTML.slice(
+                -1600,
+              ),
             }),
           );
           this.targetsMovedEarlierAfterPageBreak.add(id);
