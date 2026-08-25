@@ -2441,8 +2441,11 @@ export class OPFView implements Vgen.CustomRendererFactory {
       Task.newFrame("renderSinglePage");
 
     const pageIndexToRender = pos ? Math.max(pos.page, 0) : 0;
-    if (pageIndexToRender >= 28 && pageIndexToRender <= 38) {
-      console.warn(
+    if (
+      pageIndexToRender <= 10 ||
+      (pageIndexToRender >= 28 && pageIndexToRender <= 38)
+    ) {
+      console.error(
         "[PBTRACE] render-start",
         JSON.stringify({
           pageIndexToRender,
@@ -2493,8 +2496,8 @@ export class OPFView implements Vgen.CustomRendererFactory {
       const pageIndex = pos
         ? pos.page - 1
         : viewItem.layoutPositions.length - 1;
-      if (pageIndex >= 28 && pageIndex <= 38) {
-        console.warn(
+      if (pageIndex <= 10 || (pageIndex >= 28 && pageIndex <= 38)) {
+        console.error(
           "[PBTRACE] render-end",
           JSON.stringify({
             pageIndex,

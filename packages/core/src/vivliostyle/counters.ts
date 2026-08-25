@@ -1355,7 +1355,7 @@ export class CounterStore {
           oldPageIndex.pageIndex > pageIndex &&
           !this.targetsMovedEarlierAfterPageBreak.has(id);
         if (movedEarlierAfterPageBreak) {
-          console.warn(
+          console.error(
             "[PBTRACE] target-moved-earlier",
             JSON.stringify({
               id,
