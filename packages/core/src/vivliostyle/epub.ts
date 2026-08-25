@@ -2141,9 +2141,7 @@ export class OPFView implements Vgen.CustomRendererFactory {
         "次章では、AIエージェントの正体と仕組みの基礎知識を整理します。",
       )
     ) {
-      console.error(
-        "[PBTRACE] following-page-relayout-decision",
-        JSON.stringify({
+      (globalThis as any).__pbtraceFollowingPageRelayoutDecision = {
           nextLayoutPage: nextLayoutPosition.page,
           previousLayoutPositionExists: !!previousLayoutPosition,
           samePosition:
@@ -2159,8 +2157,7 @@ export class OPFView implements Vgen.CustomRendererFactory {
           oldPageText: oldPage?.container.textContent ?? null,
           renderedPageText: renderedPage.container.textContent,
           relayoutDecision,
-        }),
-      );
+      };
     }
     if (!relayoutDecision.needsRelayout) {
       return Task.newResult(true);
@@ -2507,6 +2504,27 @@ export class OPFView implements Vgen.CustomRendererFactory {
         ? pos.page - 1
         : viewItem.layoutPositions.length - 1;
       const pageText = page.container.textContent || "";
+      if (
+        (globalThis as any).__pbtraceFollowingPageRelayoutDecision &&
+        pageIndexToRender === 15 &&
+        !(globalThis as any).__pbtraceCapturedCascade
+      ) {
+        (globalThis as any).__pbtraceCapturedCascade = true;
+        console.error(
+          "[PBTRACE] cascaded-following-page",
+          JSON.stringify({
+            decision: (globalThis as any)
+              .__pbtraceFollowingPageRelayoutDecision,
+            pageIndexToRender,
+            computedPageIndex: pageIndex,
+            nextPositionPage: pos?.page ?? null,
+            oldPageText: oldPage?.container.textContent ?? null,
+            newPageText: pageText,
+            layoutPositionsLength: viewItem.layoutPositions.length,
+            existingPagesLength: viewItem.pages.length,
+          }),
+        );
+      }
       if (
         pageText.includes(
           "次章では、AIエージェントの正体と仕組みの基礎知識を整理します。",
