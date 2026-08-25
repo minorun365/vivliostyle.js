@@ -2135,6 +2135,33 @@ export class OPFView implements Vgen.CustomRendererFactory {
       offsetChanged,
       inCounterResolveScope,
     );
+    if (
+      ((globalThis as any).__pbtraceFinalParagraphPages?.length ?? 0) > 1 &&
+      renderedPage.container.textContent?.includes(
+        "次章では、AIエージェントの正体と仕組みの基礎知識を整理します。",
+      )
+    ) {
+      console.error(
+        "[PBTRACE] following-page-relayout-decision",
+        JSON.stringify({
+          nextLayoutPage: nextLayoutPosition.page,
+          previousLayoutPositionExists: !!previousLayoutPosition,
+          samePosition:
+            !!previousLayoutPosition &&
+            nextLayoutPosition.isSamePosition(previousLayoutPosition),
+          highestSeenOffset: nextLayoutPosition.highestSeenOffset,
+          previousHighestSeenOffset:
+            previousLayoutPosition?.highestSeenOffset ?? null,
+          offsetChanged,
+          positionChanged,
+          inCounterResolveScope,
+          nextPageText: nextPage?.container.textContent ?? null,
+          oldPageText: oldPage?.container.textContent ?? null,
+          renderedPageText: renderedPage.container.textContent,
+          relayoutDecision,
+        }),
+      );
+    }
     if (!relayoutDecision.needsRelayout) {
       return Task.newResult(true);
     }
@@ -2496,12 +2523,6 @@ export class OPFView implements Vgen.CustomRendererFactory {
           layoutPositionsLength: viewItem.layoutPositions.length,
           existingPagesLength: viewItem.pages.length,
         });
-        if (traces.length > 1) {
-          console.error(
-            "[PBTRACE] repeated-final-paragraph-page",
-            JSON.stringify(traces),
-          );
-        }
       }
       this.finishPageContainer(viewItem, page, pageIndex);
       this.counterStore.finishPage(page.spineIndex, pageIndex);
