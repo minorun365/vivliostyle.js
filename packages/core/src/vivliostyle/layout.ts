@@ -3852,7 +3852,43 @@ export class Column extends VtreeImpl.Container implements Layout.Column {
     // been satisfied by entering this page. Keep the break on the node context
     // so continuation positions still point at the forced-break target, but
     // remember the boundary for the cross-reference layout constraint below.
-    function noteSatisfiedLeadingPageBreak(): void {
+    function noteSatisfiedLeadingPageBreak(
+      currentNodeContext: Vtree.NodeContext,
+    ): void {
+      const sourceElement = currentNodeContext.sourceNode as Element;
+      if (
+        sourceElement?.id === "第章のまとめ" &&
+        Break.isPageLevelForcedBreak(breakAtTheEdge)
+      ) {
+        const chain = [];
+        for (
+          let nc: Vtree.NodeContext | null = currentNodeContext;
+          nc;
+          nc = nc.parent
+        ) {
+          chain.push({
+            name: nc.sourceNode?.nodeName,
+            id: (nc.sourceNode as Element)?.id || null,
+            after: nc.after,
+            offsetInNode: nc.offsetInNode,
+            breakBefore: nc.breakBefore,
+          });
+        }
+        console.error(
+          "[PBTRACE] summary-break",
+          JSON.stringify({
+            leadingEdge,
+            isNonFirstColumn: column.isNonFirstColumn,
+            forcedBreakValue,
+            breakAtTheEdge,
+            chain,
+            currentColumnText: column.element.textContent
+              ?.replace(/\s+/g, " ")
+              .trim()
+              .slice(-300),
+          }),
+        );
+      }
       if (
         !leadingEdge ||
         column.isNonFirstColumn ||
@@ -4048,7 +4084,7 @@ export class Column extends VtreeImpl.Container implements Layout.Column {
                 setBreakAtTheEdge(nodeContext.breakBefore);
                 suppressWeakerLeadingColumnBreaks(nodeContext);
                 consumeSatisfiedLeadingColumnBreak(nodeContext);
-                noteSatisfiedLeadingPageBreak();
+                noteSatisfiedLeadingPageBreak(nodeContext);
                 // Leading edge of non-empty block -> finished going through
                 // all starting edges of the box
                 if (needForcedBreak()) {
@@ -4174,7 +4210,7 @@ export class Column extends VtreeImpl.Container implements Layout.Column {
                 setBreakAtTheEdge(nodeContext.breakBefore);
                 suppressWeakerLeadingColumnBreaks(nodeContext);
                 consumeSatisfiedLeadingColumnBreak(nodeContext);
-                noteSatisfiedLeadingPageBreak();
+                noteSatisfiedLeadingPageBreak(nodeContext);
 
                 // check if a forced break must occur before the block.
                 if (needForcedBreak()) {
@@ -4317,7 +4353,7 @@ export class Column extends VtreeImpl.Container implements Layout.Column {
               setBreakAtTheEdge(nodeContext.breakBefore);
               suppressWeakerLeadingColumnBreaks(nodeContext);
               consumeSatisfiedLeadingColumnBreak(nodeContext);
-              noteSatisfiedLeadingPageBreak();
+              noteSatisfiedLeadingPageBreak(nodeContext);
 
               // Prevent unnecessary blank pages by removing unnecessary forced column breaks
               if (
