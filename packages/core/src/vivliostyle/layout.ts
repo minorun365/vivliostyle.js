@@ -3874,9 +3874,7 @@ export class Column extends VtreeImpl.Container implements Layout.Column {
             breakBefore: nc.breakBefore,
           });
         }
-        console.error(
-          "[PBTRACE] summary-break",
-          JSON.stringify({
+        (globalThis as any).__pbtraceSummaryBreak = {
             leadingEdge,
             isNonFirstColumn: column.isNonFirstColumn,
             forcedBreakValue,
@@ -3886,8 +3884,7 @@ export class Column extends VtreeImpl.Container implements Layout.Column {
               ?.replace(/\s+/g, " ")
               .trim()
               .slice(-300),
-          }),
-        );
+        };
       }
       if (
         !leadingEdge ||
@@ -4828,6 +4825,33 @@ export class Column extends VtreeImpl.Container implements Layout.Column {
     leadingEdge: boolean,
     breakAfter?: string | null,
   ): Task.Result<Vtree.ChunkPosition | null> {
+    if (
+      chunkPosition.primary.steps.some(
+        (step) =>
+          step.node.nodeType === 3 &&
+          step.node.textContent?.includes(
+            "次章では、AIエージェントの正体と仕組みの基礎知識を整理します。",
+          ),
+      )
+    ) {
+      console.error(
+        "[PBTRACE] layout-starts-in-final-paragraph",
+        JSON.stringify({
+          summaryBreak: (globalThis as any).__pbtraceSummaryBreak,
+          steps: chunkPosition.primary.steps.map((step) => ({
+            name: step.node.nodeName,
+            id:
+              step.node.nodeType === 1
+                ? (step.node as Element).getAttribute("id")
+                : null,
+            text:
+              step.node.nodeType === 3 ? step.node.textContent : undefined,
+          })),
+          offsetInNode: chunkPosition.primary.offsetInNode,
+          after: chunkPosition.primary.after,
+        }),
+      );
+    }
     this.chunkPositions.push(chunkPosition); // So we can re-layout this column later
     if (chunkPosition.primary.after) {
       this.lastAfterPosition = chunkPosition.primary;

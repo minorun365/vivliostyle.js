@@ -2479,6 +2479,30 @@ export class OPFView implements Vgen.CustomRendererFactory {
       const pageIndex = pos
         ? pos.page - 1
         : viewItem.layoutPositions.length - 1;
+      const pageText = page.container.textContent || "";
+      if (
+        pageText.includes(
+          "次章では、AIエージェントの正体と仕組みの基礎知識を整理します。",
+        )
+      ) {
+        const traces = ((globalThis as any).__pbtraceFinalParagraphPages ||=
+          []);
+        traces.push({
+          pageIndexToRender,
+          computedPageIndex: pageIndex,
+          nextPositionPage: pos?.page ?? null,
+          oldPageText: oldPage?.container.textContent ?? null,
+          newPageText: pageText,
+          layoutPositionsLength: viewItem.layoutPositions.length,
+          existingPagesLength: viewItem.pages.length,
+        });
+        if (traces.length > 1) {
+          console.error(
+            "[PBTRACE] repeated-final-paragraph-page",
+            JSON.stringify(traces),
+          );
+        }
+      }
       this.finishPageContainer(viewItem, page, pageIndex);
       this.counterStore.finishPage(page.spineIndex, pageIndex);
 
