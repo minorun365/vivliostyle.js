@@ -944,6 +944,7 @@ export class CounterStore {
     Object.create(null);
   resolvedReferences: { [key: string]: TargetCounterReference[] } =
     Object.create(null);
+  private earliestPageIndicesAfterPageBreak = new Map<string, number>();
   pageControlledCounterNames: { [key: string]: boolean } = Object.assign(
     Object.create(null),
     { page: true },
@@ -1348,7 +1349,18 @@ export class CounterStore {
         }
 
         const oldPageIndex = this.pageIndicesById[id];
-        if (oldPageIndex && oldPageIndex.pageIndex < pageIndex) {
+        const movedLater = oldPageIndex && oldPageIndex.pageIndex < pageIndex;
+        const earliestPageIndexAfterPageBreak =
+          this.earliestPageIndicesAfterPageBreak.get(id);
+        const movedEarlierAfterPageBreak =
+          oldPageIndex &&
+          oldPageIndex.pageIndex > pageIndex &&
+          (earliestPageIndexAfterPageBreak === undefined ||
+            pageIndex < earliestPageIndexAfterPageBreak);
+        if (movedEarlierAfterPageBreak) {
+          this.earliestPageIndicesAfterPageBreak.set(id, pageIndex);
+        }
+        if (movedLater || movedEarlierAfterPageBreak) {
           const resolvedRefs = this.resolvedReferences[id];
           if (resolvedRefs) {
             let unresolvedRefs = this.unresolvedReferences[id];
@@ -1899,6 +1911,15 @@ export class CounterStore {
   createLayoutConstraint(pageIndex: number): Layout.LayoutConstraint {
     return new LayoutConstraint(this, pageIndex);
   }
+
+  canTargetMoveEarlierAfterPageBreak(id: string, pageIndex: number): boolean {
+    // Keep the anti-oscillation guarantee introduced by b0288a35 while
+    // allowing reference resolution to move a target earlier in more than one
+    // step. Revisiting an already tried page is rejected, but a strictly
+    // earlier page is still allowed.
+    const earliestPageIndex = this.earliestPageIndicesAfterPageBreak.get(id);
+    return earliestPageIndex === undefined || pageIndex < earliestPageIndex;
+  }
 }
 
 export const PAGES_COUNTER_ATTR = "data-vivliostyle-pages-counter";
@@ -1923,25 +1944,20 @@ class LayoutConstraint implements Layout.LayoutConstraint {
   ) {}
 
   /** @override */
+  allowLayoutAfterPageBreak(nodeContext: Vtree.NodeContext): boolean {
+    if (this.allowLayout(nodeContext)) {
+      return true;
+    }
+    const id = this.getReferencedTargetId(nodeContext);
+    return (
+      !!id &&
+      this.counterStore.canTargetMoveEarlierAfterPageBreak(id, this.pageIndex)
+    );
+  }
+
   allowLayout(nodeContext: Vtree.NodeContext): boolean {
-    if (!nodeContext || nodeContext.after) {
-      return true;
-    }
-    const viewNode = nodeContext.viewNode;
-    if (!viewNode || viewNode.nodeType !== 1) {
-      return true;
-    }
-    const id =
-      (viewNode as Element).getAttribute("data-vivliostyle-id") ||
-      (viewNode as Element).getAttribute("id") ||
-      (viewNode as Element).getAttribute("name");
+    const id = this.getReferencedTargetId(nodeContext);
     if (!id) {
-      return true;
-    }
-    if (
-      !this.counterStore.resolvedReferences[id] &&
-      !this.counterStore.unresolvedReferences[id]
-    ) {
       return true;
     }
     const pageIndex = this.counterStore.pageIndicesById[id];
@@ -1949,5 +1965,29 @@ class LayoutConstraint implements Layout.LayoutConstraint {
       return true;
     }
     return this.pageIndex >= pageIndex.pageIndex;
+  }
+
+  private getReferencedTargetId(nodeContext: Vtree.NodeContext): string | null {
+    if (!nodeContext || nodeContext.after) {
+      return null;
+    }
+    const viewNode = nodeContext.viewNode;
+    if (!viewNode || viewNode.nodeType !== 1) {
+      return null;
+    }
+    const id =
+      (viewNode as Element).getAttribute("data-vivliostyle-id") ||
+      (viewNode as Element).getAttribute("id") ||
+      (viewNode as Element).getAttribute("name");
+    if (!id) {
+      return null;
+    }
+    if (
+      !this.counterStore.resolvedReferences[id] &&
+      !this.counterStore.unresolvedReferences[id]
+    ) {
+      return null;
+    }
+    return id;
   }
 }

@@ -467,6 +467,62 @@ describe("epub", function () {
         return testFrame.result();
       });
     });
+
+    it("reuses the requested slot when a final-page rerender shrinks the spine", function (done) {
+      adapt_task.start(function () {
+        var view = Object.create(adapt_epub.OPFView.prototype);
+        var page = { spineIndex: 0, offset: 0, fetchers: [] };
+        var viewItem = {
+          layoutPositions: new Array(17).fill(null),
+          pages: Array.from({ length: 17 }, function () {
+            return { container: { remove: function () {} } };
+          }),
+          pageCounterStarts: new Array(17).fill(null),
+          instance: {
+            getPageNumberContextDepth: function () {
+              return 0;
+            },
+            pushPageNumberContext: function () {},
+            restorePageNumberContextDepth: function () {},
+            layoutNextPage: function () {
+              return adapt_task.newResult(null);
+            },
+          },
+        };
+        view.counterStore = { finishPage: function () {} };
+        view.isInCounterResolveScope = function () {
+          return false;
+        };
+        view.preparePageCountersForRender = function () {
+          return null;
+        };
+        view.makePage = function () {
+          return page;
+        };
+        view.resolvePageTypeForRenderSlot = function () {};
+        spyOn(view, "finishPageContainer");
+        view.reportPaginationProgress = function () {};
+        view.maybeRelayoutFollowingPage = function () {
+          return adapt_task.newResult(true);
+        };
+        view.resolveUnresolvedReferencesForPage = function () {
+          return adapt_task.newResult(page);
+        };
+
+        view.renderSinglePage(viewItem, { page: 15 }).then(function () {
+          expect(view.finishPageContainer).toHaveBeenCalledWith(
+            viewItem,
+            page,
+            15,
+          );
+          expect(viewItem.pages.length).toBe(16);
+          expect(viewItem.layoutPositions.length).toBe(16);
+          expect(viewItem.pageCounterStarts.length).toBe(16);
+          done();
+        });
+        return adapt_task.newResult(true);
+      });
+    });
   });
   describe("OPFView pagination progress", function () {
     function createFakeView(totalOffsets) {
