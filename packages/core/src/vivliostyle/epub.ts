@@ -2147,6 +2147,24 @@ export class OPFView implements Vgen.CustomRendererFactory {
       offsetChanged,
       inCounterResolveScope,
     );
+    const debugRelayoutCount = (((this as any).__pr2132RelayoutCount ?? 0) +
+      1) as number;
+    (this as any).__pr2132RelayoutCount = debugRelayoutCount;
+    if (debugRelayoutCount <= 100) {
+      console.log(
+        "PR2132 relayoutDecision",
+        viewItem.item.spineIndex,
+        nextLayoutPosition.page,
+        !!oldPage,
+        renderedPage.offset,
+        oldPage?.offset,
+        positionChanged,
+        offsetChanged,
+        inCounterResolveScope,
+        relayoutDecision.needsRelayout,
+        relayoutDecision.shouldCascade,
+      );
+    }
     if (!relayoutDecision.needsRelayout) {
       return Task.newResult(true);
     }
@@ -2601,6 +2619,19 @@ export class OPFView implements Vgen.CustomRendererFactory {
       Task.newFrame("renderSinglePage");
 
     const pageIndexToRender = pos ? Math.max(pos.page, 0) : 0;
+    const debugRenderCount = (((this as any).__pr2132RenderCount ?? 0) +
+      1) as number;
+    (this as any).__pr2132RenderCount = debugRenderCount;
+    if (debugRenderCount <= 100) {
+      console.log(
+        "PR2132 renderSinglePage",
+        debugRenderCount,
+        viewItem.item.spineIndex,
+        pageIndexToRender,
+        viewItem.pages.length,
+        this.isInCounterResolveScope(),
+      );
+    }
     const pageNumberContextDepth =
       viewItem.instance.getPageNumberContextDepth();
     // Issue #2013: preserve the current render slot's page number so

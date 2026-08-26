@@ -1356,6 +1356,8 @@ export class CounterStore {
             oldPageIndex?.pageIndex,
             pageIndex,
             this.targetsMovedEarlierAfterPageBreak.has(id),
+            this.unresolvedReferences[id]?.length ?? 0,
+            this.resolvedReferences[id]?.length ?? 0,
           );
         }
         if (oldPageIndex && oldPageIndex.pageIndex < pageIndex) {
