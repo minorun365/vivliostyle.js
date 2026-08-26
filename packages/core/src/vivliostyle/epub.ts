@@ -2607,30 +2607,6 @@ export class OPFView implements Vgen.CustomRendererFactory {
       Task.newFrame("renderSinglePage");
 
     const pageIndexToRender = pos ? Math.max(pos.page, 0) : 0;
-    const debugRenderCount = (((this as any).__pr2132RenderCount ?? 0) +
-      1) as number;
-    (this as any).__pr2132RenderCount = debugRenderCount;
-    if (debugRenderCount > 10) {
-      const targetState = Object.fromEntries(
-        Object.entries(this.counterStore.pageIndicesById).map(([id, index]) => [
-          id,
-          {
-            index,
-            unresolved: this.counterStore.unresolvedReferences[id]?.map(
-              (ref) => [ref.spineIndex, ref.pageIndex, ref.isResolved()],
-            ),
-            resolved: this.counterStore.resolvedReferences[id]?.map((ref) => [
-              ref.spineIndex,
-              ref.pageIndex,
-              ref.isResolved(),
-            ]),
-          },
-        ]),
-      );
-      throw new Error(
-        `PR2132 render loop count=${debugRenderCount} spine=${viewItem.item.spineIndex} page=${pageIndexToRender} pages=${viewItem.pages.length} positions=${viewItem.layoutPositions.length} deferredSpine=${this.deferredFollowingSpineRelayoutStart} deferredRefs=${this.deferredReferencePages.length} targets=${JSON.stringify(targetState)}`,
-      );
-    }
     const pageNumberContextDepth =
       viewItem.instance.getPageNumberContextDepth();
     // Issue #2013: preserve the current render slot's page number so
