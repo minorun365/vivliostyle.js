@@ -2797,8 +2797,7 @@ export class OPFView implements Vgen.CustomRendererFactory {
     const frame: Task.Frame<PageAndPosition | null> = Task.newFrame(
       "rerenderDeferredFollowingSpines",
     );
-    const spineCount = this.opf?.spine?.length || this.spineItems.length;
-    const maxPasses = Math.max(3, spineCount * 2 + 2);
+    const maxPasses = 1;
     let passCount = 0;
     let result: PageAndPosition | null = null;
     let preserveTargetSnapshots = false;
