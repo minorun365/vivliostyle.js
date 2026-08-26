@@ -1886,6 +1886,12 @@ async function captureOneSide({
       deviceScaleFactor: 2,
     });
     page = await context.newPage();
+    page.on("console", (message) => {
+      const text = message.text();
+      if (text.startsWith("PR2132")) {
+        console.log(text);
+      }
+    });
     const captured = await capturePages({
       page,
       url,
