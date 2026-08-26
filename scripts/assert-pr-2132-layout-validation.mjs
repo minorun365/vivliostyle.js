@@ -41,6 +41,12 @@ if (targetPageCount !== 3) {
     `Expected the corrected target-counter case to finish in 3 pages, got ${targetPageCount}`,
   );
 }
+const baselineTargetPageCount = pageBreakTarget.difference?.baseline?.totalPages;
+if (baselineTargetPageCount !== 4) {
+  throw new Error(
+    `Expected the stable target-counter case to reproduce in 4 pages, got ${baselineTargetPageCount}`,
+  );
+}
 
 const combinedBreaks = entryFor("page_breaks/combine_breaks_2.html");
 assertNoRenderError(combinedBreaks);
@@ -50,6 +56,19 @@ if (combinedBreaks.viewerChanged) {
 
 const shrinkingSpine = entryFor("target-text-shrinking-spine/publication.json");
 assertNoRenderError(shrinkingSpine);
+const shrinkingPageCount = shrinkingSpine.difference?.actual?.totalPages;
+if (shrinkingPageCount !== 4) {
+  throw new Error(
+    `Expected the shrinking-spine case to finish in 4 pages, got ${shrinkingPageCount}`,
+  );
+}
+const baselineShrinkingPageCount =
+  shrinkingSpine.difference?.baseline?.totalPages;
+if (baselineShrinkingPageCount !== 6) {
+  throw new Error(
+    `Expected the stable shrinking-spine case to reproduce in 6 pages, got ${baselineShrinkingPageCount}`,
+  );
+}
 
 console.log(
   "Validated: corrected three-page result, completed pagination, unchanged combined breaks, and shrinking-spine rendering.",
