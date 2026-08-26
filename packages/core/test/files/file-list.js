@@ -450,6 +450,10 @@ module.exports = [
           "target-text() reflow across WebPub spine navigation (Issue #1856)",
       },
       {
+        file: "target-text-forced-break-spine/publication.json",
+        title: "target-text() reflow before a forced-break spine",
+      },
+      {
         file: "target-text-vs-named-strings.html",
         title: "target-text() vs Named Strings",
       },
@@ -766,6 +770,10 @@ module.exports = [
       {
         file: "page_breaks/combine_breaks_2.html",
         title: "Combine break value regressions (Issue #1842)",
+      },
+      {
+        file: "page_breaks/break-before-flex-at-page-start.html",
+        title: "Consumed break-before on a flex box at page start",
       },
       {
         file: "page_breaks/break_left_right.html",

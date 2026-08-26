@@ -3839,6 +3839,22 @@ export class Column extends VtreeImpl.Container implements Layout.Column {
       breakAtTheEdge = null;
     }
 
+    // A page-level break found again at the start of the first column has
+    // already been satisfied by entering this page. Consume only the
+    // accumulated edge value; keep the node context unchanged so a saved
+    // continuation still points at the forced-break target.
+    function consumeSatisfiedLeadingPageBreak(): void {
+      if (
+        !leadingEdge ||
+        column.isNonFirstColumn ||
+        forcedBreakValue ||
+        !Break.isPageLevelForcedBreak(breakAtTheEdge)
+      ) {
+        return;
+      }
+      breakAtTheEdge = null;
+    }
+
     function suppressWeakerTrailingColumnBreaks(
       currentNodeContext: Vtree.NodeContext,
     ): void {
@@ -4013,6 +4029,7 @@ export class Column extends VtreeImpl.Container implements Layout.Column {
                 setBreakAtTheEdge(nodeContext.breakBefore);
                 suppressWeakerLeadingColumnBreaks(nodeContext);
                 consumeSatisfiedLeadingColumnBreak(nodeContext);
+                consumeSatisfiedLeadingPageBreak();
                 // Leading edge of non-empty block -> finished going through
                 // all starting edges of the box
                 if (needForcedBreak()) {
@@ -4138,6 +4155,7 @@ export class Column extends VtreeImpl.Container implements Layout.Column {
                 setBreakAtTheEdge(nodeContext.breakBefore);
                 suppressWeakerLeadingColumnBreaks(nodeContext);
                 consumeSatisfiedLeadingColumnBreak(nodeContext);
+                consumeSatisfiedLeadingPageBreak();
 
                 // check if a forced break must occur before the block.
                 if (needForcedBreak()) {
@@ -4280,6 +4298,7 @@ export class Column extends VtreeImpl.Container implements Layout.Column {
               setBreakAtTheEdge(nodeContext.breakBefore);
               suppressWeakerLeadingColumnBreaks(nodeContext);
               consumeSatisfiedLeadingColumnBreak(nodeContext);
+              consumeSatisfiedLeadingPageBreak();
 
               // Prevent unnecessary blank pages by removing unnecessary forced column breaks
               if (
