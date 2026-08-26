@@ -2534,7 +2534,12 @@ export class OPFView implements Vgen.CustomRendererFactory {
         }
         const currentPage =
           entry.viewItem.pages?.[entry.pageIndex] || entry.page;
-        if (!this.hasUnresolvedReferencesToPage(currentPage)) {
+        if (
+          !this.hasCrossSpineUnresolvedReferencesToPage(
+            entry.viewItem,
+            currentPage,
+          )
+        ) {
           loopFrame.continueLoop();
           return;
         }
@@ -2552,10 +2557,17 @@ export class OPFView implements Vgen.CustomRendererFactory {
     return frame.result();
   }
 
-  private hasUnresolvedReferencesToPage(page: Vtree.Page): boolean {
+  private hasCrossSpineUnresolvedReferencesToPage(
+    viewItem: OPFViewItem,
+    page: Vtree.Page,
+  ): boolean {
     return this.counterStore
       .getUnresolvedRefsToPage(page)
-      .some((group) => group.refs.some((ref) => !ref.isResolved()));
+      .some(
+        (group) =>
+          group.spineIndex !== viewItem.item.spineIndex &&
+          group.refs.some((ref) => !ref.isResolved()),
+      );
   }
 
   private deferReferencesForPage(
@@ -2565,7 +2577,11 @@ export class OPFView implements Vgen.CustomRendererFactory {
     nextLayoutPosition: Vtree.LayoutPosition | null,
   ): void {
     const latestPage = viewItem.pages?.[pageIndex] || page;
-    if (!this.hasUnresolvedReferencesToPage(latestPage)) {
+    // Keep the #1686 recursion guard for references within one spine. Those
+    // references are resolved by the normal forward pagination flow. Only a
+    // cross-spine reference needs to survive the nested scope, because its
+    // source spine may already have been passed when the target moves.
+    if (!this.hasCrossSpineUnresolvedReferencesToPage(viewItem, latestPage)) {
       return;
     }
     const deferredReferencePages = (this.deferredReferencePages ??= []);

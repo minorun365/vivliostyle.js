@@ -658,7 +658,7 @@ describe("epub", function () {
       adapt_task.start(function () {
         var view = Object.create(adapt_epub.OPFView.prototype);
         var page = {};
-        var viewItem = {};
+        var viewItem = { item: { spineIndex: 1 } };
         var nextLayoutPosition = { page: 16 };
         var ref = {
           isResolved: function () {
@@ -667,7 +667,7 @@ describe("epub", function () {
         };
         view.counterStore = {
           getUnresolvedRefsToPage: function () {
-            return [{ refs: [ref] }];
+            return [{ spineIndex: 0, refs: [ref] }];
           },
         };
         view.isInCounterResolveScope = function () {
@@ -715,7 +715,7 @@ describe("epub", function () {
         view.opf = { spine: [{}, {}] };
         view.counterStore = {
           getUnresolvedRefsToPage: function () {
-            return [{ refs: [ref] }];
+            return [{ spineIndex: 1, refs: [ref] }];
           },
         };
         view.isInCounterResolveScope = function () {
@@ -743,11 +743,47 @@ describe("epub", function () {
       });
     });
 
+    it("keeps same-spine references under the issue 1686 recursion guard", function (done) {
+      adapt_task.start(function () {
+        var view = Object.create(adapt_epub.OPFView.prototype);
+        var page = {
+          container: {
+            parentElement: {},
+            setAttribute: function () {},
+          },
+          spineIndex: 0,
+        };
+        var viewItem = { pages: [page], item: { spineIndex: 0 } };
+        var ref = {
+          isResolved: function () {
+            return false;
+          },
+        };
+        view.opf = { spine: [{}] };
+        view.counterStore = {
+          getUnresolvedRefsToPage: function () {
+            return [{ spineIndex: 0, refs: [ref] }];
+          },
+        };
+        view.isInCounterResolveScope = function () {
+          return true;
+        };
+
+        view
+          .resolveUnresolvedReferencesForPage(viewItem, page, 0, null)
+          .then(function () {
+            expect(view.deferredReferencePages || []).toEqual([]);
+            done();
+          });
+        return adapt_task.newResult(true);
+      });
+    });
+
     it("queues deferred references until the outermost counter scope is restored", function (done) {
       adapt_task.start(function () {
         var view = Object.create(adapt_epub.OPFView.prototype);
         var page = {};
-        var viewItem = { pages: [page] };
+        var viewItem = { pages: [page], item: { spineIndex: 1 } };
         var inCounterScope = true;
         var ref = {
           isResolved: function () {
@@ -756,7 +792,7 @@ describe("epub", function () {
         };
         view.counterStore = {
           getUnresolvedRefsToPage: function () {
-            return [{ refs: [ref] }];
+            return [{ spineIndex: 0, refs: [ref] }];
           },
         };
         view.isInCounterResolveScope = function () {
