@@ -1499,6 +1499,21 @@ function createWallClockTimeoutError(timeoutMs, action) {
   return error;
 }
 
+async function collectPr2132Diagnostics(page) {
+  const diagnostics = [];
+  for (const frame of page.frames()) {
+    try {
+      const value = await frame.evaluate(() => globalThis.__pr2132 ?? null);
+      if (value) {
+        diagnostics.push({ url: frame.url(), value });
+      }
+    } catch {
+      // Ignore frames that are navigating or no longer attached.
+    }
+  }
+  return diagnostics;
+}
+
 async function withWallClockTimeout(task, timeoutMs, action) {
   let timer;
 
@@ -1802,7 +1817,12 @@ async function captureOneSide({
       });
       return { ok: true, ...captured };
     } catch (err) {
-      return { ok: false, error: toComparableError(err) };
+      const diagnostics = page ? await collectPr2132Diagnostics(page) : [];
+      const comparableError = toComparableError(err);
+      if (diagnostics.length > 0) {
+        comparableError.diagnostics = diagnostics;
+      }
+      return { ok: false, error: comparableError };
     } finally {
       if (page) {
         try {

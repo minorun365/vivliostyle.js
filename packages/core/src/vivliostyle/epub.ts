@@ -2150,6 +2150,22 @@ export class OPFView implements Vgen.CustomRendererFactory {
     const debugRelayoutCount = (((this as any).__pr2132RelayoutCount ?? 0) +
       1) as number;
     (this as any).__pr2132RelayoutCount = debugRelayoutCount;
+    const relayoutDiagnostics = ((globalThis as any).__pr2132 ??= {}) as any;
+    relayoutDiagnostics.relayoutCount = debugRelayoutCount;
+    relayoutDiagnostics.relayouts = relayoutDiagnostics.relayouts || [];
+    relayoutDiagnostics.relayouts.push({
+      spineIndex: viewItem.item.spineIndex,
+      nextPage: nextLayoutPosition.page,
+      hasOldPage: !!oldPage,
+      renderedOffset: renderedPage.offset,
+      oldOffset: oldPage?.offset,
+      positionChanged,
+      offsetChanged,
+      inCounterResolveScope,
+      needsRelayout: relayoutDecision.needsRelayout,
+      shouldCascade: relayoutDecision.shouldCascade,
+    });
+    relayoutDiagnostics.relayouts = relayoutDiagnostics.relayouts.slice(-40);
     if (debugRelayoutCount <= 100) {
       console.log(
         "PR2132 relayoutDecision",
@@ -2622,6 +2638,16 @@ export class OPFView implements Vgen.CustomRendererFactory {
     const debugRenderCount = (((this as any).__pr2132RenderCount ?? 0) +
       1) as number;
     (this as any).__pr2132RenderCount = debugRenderCount;
+    const renderDiagnostics = ((globalThis as any).__pr2132 ??= {}) as any;
+    renderDiagnostics.renderCount = debugRenderCount;
+    renderDiagnostics.renders = renderDiagnostics.renders || [];
+    renderDiagnostics.renders.push({
+      spineIndex: viewItem.item.spineIndex,
+      pageIndex: pageIndexToRender,
+      pagesLength: viewItem.pages.length,
+      inCounterResolveScope: this.isInCounterResolveScope(),
+    });
+    renderDiagnostics.renders = renderDiagnostics.renders.slice(-40);
     if (debugRenderCount <= 100) {
       console.log(
         "PR2132 renderSinglePage",
