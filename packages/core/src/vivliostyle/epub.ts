@@ -2736,37 +2736,6 @@ export class OPFView implements Vgen.CustomRendererFactory {
       inputPositionOffset,
       pos?.highestSeenOffset ?? null,
     );
-    const debugFinalRemainder =
-      pageIndexToRender === 2 &&
-      !this.isInCounterResolveScope() &&
-      debugRenderCount > 3;
-    const debugInputFlowState = debugFinalRemainder
-      ? Object.fromEntries(
-        Object.entries(pos?.flowPositions ?? {}).map(([name, flow]) => [
-          name,
-          {
-            startBreakType: flow.startBreakType,
-            breakAfter: flow.breakAfter,
-            positions: flow.positions.map((position) => {
-              const primary = position.chunkPosition.primary;
-              const node = primary.steps[0]?.node;
-              return {
-                chunkStartOffset: position.flowChunk.startOffset,
-                breakBefore: position.flowChunk.breakBefore,
-                offsetInNode: primary.offsetInNode,
-                after: primary.after,
-                nodeName: node?.nodeName,
-                nodeId:
-                  node?.nodeType === 1
-                    ? (node as Element).getAttribute("id")
-                    : null,
-                text: node?.textContent?.slice(0, 80),
-              };
-            }),
-          },
-        ]),
-      )
-      : null;
     viewItem.instance.layoutNextPage(page, pos).then((posParam) => {
       pos = posParam;
       console.log(
@@ -2794,10 +2763,11 @@ export class OPFView implements Vgen.CustomRendererFactory {
       const pageIndex = pos ? pos.page - 1 : pageIndexToRender;
       this.finishPageContainer(viewItem, page, pageIndex);
       this.counterStore.finishPage(page.spineIndex, pageIndex);
-      if (debugFinalRemainder) {
-        throw new Error(
-          `PR2132 final remainder stored input=${inputPositionOffset} output=${pos ? viewItem.instance.getPosition(pos, true) : null} flows=${JSON.stringify(debugInputFlowState)}`,
-        );
+      if (!pos) {
+        // A final page can be produced by a nested relayout while resolving a
+        // target reference. Mark the spine complete here as well as in the
+        // outer render loop, otherwise that loop requests the final page again.
+        this.markSpineItemCompleteIfReady(viewItem);
       }
 
       const collectResult = Plugin.getHooksForName(
