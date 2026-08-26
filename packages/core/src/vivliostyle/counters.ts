@@ -1354,7 +1354,7 @@ export class CounterStore {
           oldPageIndex &&
           oldPageIndex.pageIndex > pageIndex &&
           !this.targetsMovedEarlierAfterPageBreak.has(id);
-        if (id === "target") {
+        if (id.endsWith("target")) {
           console.log(
             "PR2132 finishPage",
             id,
@@ -1975,7 +1975,7 @@ export class CounterStore {
     // gets one exception for a page break that has already been satisfied,
     // but cannot repeatedly alternate between earlier and later pages.
     const alreadyMoved = this.targetsMovedEarlierAfterPageBreak.has(id);
-    if (id === "target") {
+    if (id.endsWith("target")) {
       console.log("PR2132 canMoveEarlier", id, alreadyMoved);
     }
     if (alreadyMoved) {

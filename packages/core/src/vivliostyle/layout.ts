@@ -3892,17 +3892,17 @@ export class Column extends VtreeImpl.Container implements Layout.Column {
       const allowedAfterPageBreak =
         column.layoutConstraint.allowLayoutAfterPageBreak?.(nodeContext) ??
         false;
-      const debugId =
+      const debugElement =
         nodeContext.viewNode?.nodeType === 1
-          ? (nodeContext.viewNode as Element).getAttribute("id")
+          ? (nodeContext.viewNode as Element)
           : null;
-      if (debugId === "target") {
-        console.log(
-          "PR2132 allowAfterBreak",
-          breakAtTheEdge,
-          allowedAfterPageBreak,
-        );
-      }
+      console.log(
+        "PR2132 allowAfterBreak",
+        debugElement?.getAttribute("data-vivliostyle-id"),
+        debugElement?.getAttribute("id"),
+        breakAtTheEdge,
+        allowedAfterPageBreak,
+      );
       if (allowedAfterPageBreak) {
         // The page-level break has already been satisfied by entering this
         // page. Consume it only when it is what allows this exact node to move
