@@ -2648,6 +2648,32 @@ export class OPFView implements Vgen.CustomRendererFactory {
       inCounterResolveScope: this.isInCounterResolveScope(),
     });
     renderDiagnostics.renders = renderDiagnostics.renders.slice(-40);
+    const targetState = Object.fromEntries(
+      Object.keys(this.counterStore.pageIndicesById)
+        .filter((id) => id.endsWith("target"))
+        .map((id) => [
+          id,
+          {
+            pageIndex: this.counterStore.pageIndicesById[id],
+            unresolved: this.counterStore.unresolvedReferences[id]?.map(
+              (ref) => ({
+                resolved: ref.isResolved(),
+                spineIndex: ref.spineIndex,
+                pageIndex: ref.pageIndex,
+              }),
+            ),
+            resolved: this.counterStore.resolvedReferences[id]?.map((ref) => ({
+              resolved: ref.isResolved(),
+              spineIndex: ref.spineIndex,
+              pageIndex: ref.pageIndex,
+            })),
+          },
+        ]),
+    );
+    this.viewport.root.ownerDocument.body?.setAttribute(
+      "data-pr2132-diagnostics",
+      JSON.stringify({ ...renderDiagnostics, targetState }),
+    );
     if (debugRenderCount <= 100) {
       console.log(
         "PR2132 renderSinglePage",

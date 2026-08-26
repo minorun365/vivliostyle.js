@@ -1501,6 +1501,16 @@ function createWallClockTimeoutError(timeoutMs, action) {
 
 async function collectPr2132Diagnostics(page) {
   const diagnostics = [];
+  try {
+    const bodyState = await page.evaluate(() =>
+      document.body?.getAttribute("data-pr2132-diagnostics"),
+    );
+    if (bodyState) {
+      diagnostics.push({ url: page.url(), value: JSON.parse(bodyState) });
+    }
+  } catch {
+    // Fall through to frame-local diagnostics.
+  }
   for (const frame of page.frames()) {
     try {
       const value = await frame.evaluate(() => globalThis.__pr2132 ?? null);
