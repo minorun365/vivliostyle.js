@@ -68,6 +68,9 @@ jobs:
       - name: Assert expected results and completed pagination
         run: node scripts/assert-pr-2132-layout-validation.mjs
 
+      - name: Assert forward references use rebuilt target snapshots
+        run: node scripts/assert-pr-2132-forward-reference.mjs
+
       - name: Assert five consecutive completed runs
         run: node scripts/assert-pr-2132-repeat.mjs
 
