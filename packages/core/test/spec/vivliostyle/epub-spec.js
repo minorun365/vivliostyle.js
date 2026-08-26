@@ -610,6 +610,45 @@ describe("epub", function () {
             [finalPosition, false],
           ]);
           expect(result).toBe(rerenderedResult);
+          expect(view.renderingAllPages).toBe(false);
+          done();
+        });
+        return adapt_task.newResult(true);
+      });
+    });
+
+    it("rerenders a deferred suffix after on-demand pagination", function (done) {
+      adapt_task.start(function () {
+        var view = Object.create(adapt_epub.OPFView.prototype);
+        var position = {
+          spineIndex: 2,
+          pageIndex: Number.POSITIVE_INFINITY,
+          offsetInItem: -1,
+        };
+        var initialResult = { id: "initial" };
+        var rerenderedResult = { id: "rerendered" };
+        view.renderingPageTasks = new Map();
+        view.renderingAllPages = false;
+        view.relayoutingFollowingSpines = false;
+        view.deferredFollowingSpineRelayoutStart = 1;
+        spyOn(view, "renderPageTracked").and.returnValue(
+          adapt_task.newResult(initialResult),
+        );
+        spyOn(view, "relayoutDeferredFollowingSpines").and.callFake(
+          function () {
+            view.deferredFollowingSpineRelayoutStart = null;
+          },
+        );
+        spyOn(view, "renderPagesUpto").and.returnValue(
+          adapt_task.newResult(rerenderedResult),
+        );
+
+        view.renderPage(position).then(function (result) {
+          expect(view.relayoutDeferredFollowingSpines).toHaveBeenCalled();
+          expect(view.renderPagesUpto).toHaveBeenCalledWith(position, false);
+          expect(result).toBe(rerenderedResult);
+          expect(view.relayoutingFollowingSpines).toBe(false);
+          expect(view.renderingPageTasks.size).toBe(0);
           done();
         });
         return adapt_task.newResult(true);

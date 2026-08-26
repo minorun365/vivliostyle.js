@@ -1621,6 +1621,7 @@ export class OPFView implements Vgen.CustomRendererFactory {
   private resolvingDeferredReferences: boolean = false;
   private deferredFollowingSpineRelayoutStart: number | null = null;
   private relayoutingFollowingSpines: boolean = false;
+  private renderingAllPages: boolean = false;
   private paginationProgress = {
     totalOffsetsBySpine: [] as number[],
     renderedOffsetsBySpine: [] as number[],
@@ -2830,11 +2831,31 @@ export class OPFView implements Vgen.CustomRendererFactory {
       "renderPage",
       (frame) => {
         this.renderPageTracked(position).then((result) => {
+          const firstSpine = this.deferredFollowingSpineRelayoutStart;
+          if (
+            !this.renderingAllPages &&
+            !this.relayoutingFollowingSpines &&
+            firstSpine != null &&
+            firstSpine <= position.spineIndex
+          ) {
+            // In on-demand pagination there is no final renderAllPages pass.
+            // Rebuild the invalid suffix only after the current page render
+            // has unwound, and suppress nested requests while doing so.
+            this.relayoutDeferredFollowingSpines();
+            this.relayoutingFollowingSpines = true;
+            this.renderPagesUpto(position, false).then((rerenderedResult) => {
+              this.relayoutingFollowingSpines = false;
+              endRendering();
+              frame.finish(rerenderedResult);
+            });
+            return;
+          }
           endRendering();
           frame.finish(result);
         });
       },
       (frame, err) => {
+        this.relayoutingFollowingSpines = false;
         endRendering();
         frame.task.raise(err, frame.parent);
       },
@@ -2954,8 +2975,10 @@ export class OPFView implements Vgen.CustomRendererFactory {
       offsetInItem: -1,
     };
     let result: PageAndPosition | null = null;
+    this.renderingAllPages = true;
     frame.handler = (handlerFrame, err) => {
       this.relayoutingFollowingSpines = false;
+      this.renderingAllPages = false;
       handlerFrame.task.raise(err, handlerFrame.parent);
     };
     this.renderPagesUpto(finalPosition, false).then((initialResult) => {
@@ -2979,6 +3002,7 @@ export class OPFView implements Vgen.CustomRendererFactory {
             }
           })
           .then(() => {
+            this.renderingAllPages = false;
             frame.finish(result);
           });
       };
