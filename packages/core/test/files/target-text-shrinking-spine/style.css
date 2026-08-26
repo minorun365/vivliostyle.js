@@ -8,6 +8,12 @@
   }
 }
 
+@counter-style page-width-test {
+  system: fixed;
+  symbols: "a" "b" "c" "d" "WIDE" "WIDE" "WIDE" "WIDE" "WIDE" "WIDE";
+  fallback: decimal;
+}
+
 html {
   font: 12px/1.3 sans-serif;
   widows: 1;
@@ -50,6 +56,19 @@ table {
 
 .filler {
   height: 110px;
+}
+
+.forward-filler {
+  height: 165px;
+}
+
+.forward-check {
+  font: 10px/1.2 monospace;
+  width: 126px;
+}
+
+.forward-check a::before {
+  content: target-counter(attr(href url), page, page-width-test);
 }
 
 td {
