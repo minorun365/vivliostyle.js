@@ -2534,12 +2534,7 @@ export class OPFView implements Vgen.CustomRendererFactory {
         }
         const currentPage =
           entry.viewItem.pages?.[entry.pageIndex] || entry.page;
-        if (
-          !this.hasCrossSpineUnresolvedReferencesToPage(
-            entry.viewItem,
-            currentPage,
-          )
-        ) {
+        if (!this.hasUnresolvedReferencesToPage(currentPage)) {
           loopFrame.continueLoop();
           return;
         }
@@ -2557,17 +2552,10 @@ export class OPFView implements Vgen.CustomRendererFactory {
     return frame.result();
   }
 
-  private hasCrossSpineUnresolvedReferencesToPage(
-    viewItem: OPFViewItem,
-    page: Vtree.Page,
-  ): boolean {
+  private hasUnresolvedReferencesToPage(page: Vtree.Page): boolean {
     return this.counterStore
       .getUnresolvedRefsToPage(page)
-      .some(
-        (group) =>
-          group.spineIndex !== viewItem.item.spineIndex &&
-          group.refs.some((ref) => !ref.isResolved()),
-      );
+      .some((group) => group.refs.some((ref) => !ref.isResolved()));
   }
 
   private deferReferencesForPage(
@@ -2576,12 +2564,14 @@ export class OPFView implements Vgen.CustomRendererFactory {
     pageIndex: number,
     nextLayoutPosition: Vtree.LayoutPosition | null,
   ): void {
+    // The deferred drain is the single retry allowed after the outermost
+    // counter scope. Do not let that retry enqueue itself again; doing so
+    // bypasses the #1686 recursion guard and creates an infinite loop.
+    if (this.resolvingDeferredReferences) {
+      return;
+    }
     const latestPage = viewItem.pages?.[pageIndex] || page;
-    // Keep the #1686 recursion guard for references within one spine. Those
-    // references are resolved by the normal forward pagination flow. Only a
-    // cross-spine reference needs to survive the nested scope, because its
-    // source spine may already have been passed when the target moves.
-    if (!this.hasCrossSpineUnresolvedReferencesToPage(viewItem, latestPage)) {
+    if (!this.hasUnresolvedReferencesToPage(latestPage)) {
       return;
     }
     const deferredReferencePages = (this.deferredReferencePages ??= []);

@@ -743,7 +743,7 @@ describe("epub", function () {
       });
     });
 
-    it("keeps same-spine references under the issue 1686 recursion guard", function (done) {
+    it("does not requeue a deferred page while draining it", function (done) {
       adapt_task.start(function () {
         var view = Object.create(adapt_epub.OPFView.prototype);
         var page = {
@@ -759,22 +759,15 @@ describe("epub", function () {
             return false;
           },
         };
-        view.opf = { spine: [{}] };
+        view.resolvingDeferredReferences = true;
         view.counterStore = {
           getUnresolvedRefsToPage: function () {
             return [{ spineIndex: 0, refs: [ref] }];
           },
         };
-        view.isInCounterResolveScope = function () {
-          return true;
-        };
-
-        view
-          .resolveUnresolvedReferencesForPage(viewItem, page, 0, null)
-          .then(function () {
-            expect(view.deferredReferencePages || []).toEqual([]);
-            done();
-          });
+        view.deferReferencesForPage(viewItem, page, 0, null);
+        expect(view.deferredReferencePages || []).toEqual([]);
+        done();
         return adapt_task.newResult(true);
       });
     });
