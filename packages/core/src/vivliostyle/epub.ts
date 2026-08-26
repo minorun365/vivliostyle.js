@@ -1620,6 +1620,7 @@ export class OPFView implements Vgen.CustomRendererFactory {
   private deferredReferencePages: DeferredReferencePage[] = [];
   private resolvingDeferredReferences: boolean = false;
   private deferredFollowingSpineRelayoutStart: number | null = null;
+  private debugFollowingSpineRelayoutCount: number = 0;
   private paginationProgress = {
     totalOffsetsBySpine: [] as number[],
     renderedOffsetsBySpine: [] as number[],
@@ -2827,6 +2828,32 @@ export class OPFView implements Vgen.CustomRendererFactory {
         this.renderPageTracked(position).then((result) => {
           const firstSpine = this.deferredFollowingSpineRelayoutStart;
           if (firstSpine != null && firstSpine <= position.spineIndex) {
+            this.debugFollowingSpineRelayoutCount++;
+            console.warn(
+              "[SUFFIXTRACE]",
+              JSON.stringify({
+                count: this.debugFollowingSpineRelayoutCount,
+                firstSpine,
+                requestedSpine: position.spineIndex,
+                requestedPage: position.pageIndex,
+                renderedSpines: this.spineItems.map((item, spineIndex) =>
+                  item
+                    ? {
+                        spineIndex,
+                        pages: item.pages.length,
+                        positions: item.layoutPositions.length,
+                        complete: item.complete,
+                      }
+                    : null,
+                ),
+              }),
+            );
+            if (this.debugFollowingSpineRelayoutCount >= 4) {
+              this.deferredFollowingSpineRelayoutStart = null;
+              endRendering();
+              frame.finish(result);
+              return;
+            }
             // Reference resolution can shrink an earlier spine while a later
             // spine is being rendered. Recreate the affected suffix only
             // after the current render has unwound, then retry through the
