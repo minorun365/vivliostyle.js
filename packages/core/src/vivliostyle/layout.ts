@@ -4021,10 +4021,18 @@ export class Column extends VtreeImpl.Container implements Layout.Column {
       target.viewNode.remove();
       this.pageBreakType = breakAtTheEdge;
     };
+    let debugSkipIterations = 0;
 
     frame
       .loopWithFrame((loopFrame) => {
         while (nodeContext) {
+          debugSkipIterations++;
+          if (debugSkipIterations > 10000) {
+            const node = nodeContext.viewNode;
+            throw new Error(
+              `PR2132 skipEdges stalled node=${node?.nodeName} text=${node?.textContent?.slice(0, 80)} offset=${nodeContext.offsetInNode} after=${nodeContext.after} leading=${leadingEdge} break=${breakAtTheEdge}`,
+            );
+          }
           const layoutProcessor =
             new LayoutProcessor.LayoutProcessorResolver().find(
               nodeContext.formattingContext,
