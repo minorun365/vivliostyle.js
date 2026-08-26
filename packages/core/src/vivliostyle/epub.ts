@@ -2480,35 +2480,42 @@ export class OPFView implements Vgen.CustomRendererFactory {
       return Task.newResult(page);
     }
 
-    const frame: Task.Frame<Vtree.Page> = Task.newFrame(
+    return Task.handle(
       "resolveDeferredReferencesAfterCounterScope",
-    );
-    this.resolvingDeferredReferences = true;
-    frame
-      .loopWithFrame((loopFrame) => {
-        const entry = deferredReferencePages.shift();
-        if (!entry) {
-          loopFrame.breakLoop();
-          return;
-        }
-        const currentPage =
-          entry.viewItem.pages?.[entry.pageIndex] || entry.page;
-        if (!this.hasUnresolvedReferencesToPage(currentPage)) {
-          loopFrame.continueLoop();
-          return;
-        }
-        this.resolveUnresolvedReferencesForPage(
-          entry.viewItem,
-          currentPage,
-          entry.pageIndex,
-          entry.nextLayoutPosition,
-        ).then(() => loopFrame.continueLoop());
-      })
-      .then(() => {
+      (frame) => {
+        this.resolvingDeferredReferences = true;
+        frame
+          .loopWithFrame((loopFrame) => {
+            const entry = deferredReferencePages.shift();
+            if (!entry) {
+              loopFrame.breakLoop();
+              return;
+            }
+            const currentPage =
+              entry.viewItem.pages?.[entry.pageIndex] || entry.page;
+            if (!this.hasUnresolvedReferencesToPage(currentPage)) {
+              loopFrame.continueLoop();
+              return;
+            }
+            this.resolveUnresolvedReferencesForPage(
+              entry.viewItem,
+              currentPage,
+              entry.pageIndex,
+              entry.nextLayoutPosition,
+            ).then(() => loopFrame.continueLoop());
+          })
+          .then(() => {
+            this.resolvingDeferredReferences = false;
+            frame.finish(page);
+          });
+      },
+      (frame, err) => {
+        // Release the guard before propagating, so a failure in one entry does
+        // not block every later deferred page.
         this.resolvingDeferredReferences = false;
-        frame.finish(page);
-      });
-    return frame.result();
+        frame.task.raise(err, frame.parent);
+      },
+    );
   }
 
   private hasUnresolvedReferencesToPage(page: Vtree.Page): boolean {
