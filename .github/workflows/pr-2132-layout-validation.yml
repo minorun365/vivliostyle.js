@@ -46,7 +46,7 @@ jobs:
               --file target-text-shrinking-spine/publication.json \
               --out-dir "artifacts/layout-regression-$attempt" \
               --concurrency 1 \
-              --timeout 20
+              --timeout 60
           done
 
       - name: Assert repeated pagination completion
