@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - codex/pr-2132-validation-final
+  workflow_dispatch:
 
 jobs:
   validate:
