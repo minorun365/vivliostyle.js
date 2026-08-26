@@ -2736,6 +2736,11 @@ export class OPFView implements Vgen.CustomRendererFactory {
       inputPositionOffset,
       pos?.highestSeenOffset ?? null,
     );
+    if (debugRenderCount === 9) {
+      throw new Error(
+        `PR2132 render-9 input page=${pageIndexToRender} offset=${inputPositionOffset} highest=${pos?.highestSeenOffset ?? null}`,
+      );
+    }
     viewItem.instance.layoutNextPage(page, pos).then((posParam) => {
       pos = posParam;
       console.log(
