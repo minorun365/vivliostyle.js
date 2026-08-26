@@ -58,10 +58,6 @@ table {
   height: 110px;
 }
 
-.forward-filler {
-  height: 100px;
-}
-
 .forward-check {
   font: 10px/1.2 monospace;
   width: 126px;

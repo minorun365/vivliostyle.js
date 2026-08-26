@@ -20,24 +20,41 @@ try {
       "#vivliostyle-viewer-viewport [data-vivliostyle-spread-container]",
     );
     const forwardCheck = document.querySelector(".forward-check");
-    const tail = document.querySelector(".forward-tail");
+    const tail = document.querySelector(".tail");
+    const summary = document.querySelector(".summary");
+    const chapterTwo = document.querySelector("#chapter-two");
+    const target = document.querySelector("#chapter-4");
     const pages = spread ? Array.from(spread.children) : [];
+    const pageOf = (element) =>
+      element
+        ? pages.findIndex((pageContainer) => pageContainer.contains(element)) +
+          1
+        : 0;
     return {
       totalPages: pages.length,
       forwardText: forwardCheck?.textContent ?? null,
-      tailPage: tail
-        ? pages.findIndex((pageContainer) => pageContainer.contains(tail)) + 1
-        : 0,
+      forwardPage: pageOf(forwardCheck),
+      tailPage: pageOf(tail),
+      summaryPage: pageOf(summary),
+      chapterTwoPage: pageOf(chapterTwo),
+      targetPage: pageOf(target),
     };
   });
 
   if (result.totalPages !== 4) {
     throw new Error(`Expected 4 pages, got ${result.totalPages}`);
   }
-  if (result.tailPage !== 3) {
+  if (result.forwardPage !== 1 || result.tailPage !== 1) {
     throw new Error(
-      `Expected the forward-reference tail on page 3, got ${result.tailPage}`,
+      `Expected the retained source to reflow on page 1, got ${JSON.stringify(result)}`,
     );
+  }
+  if (
+    result.summaryPage !== 2 ||
+    result.chapterTwoPage !== 3 ||
+    result.targetPage !== 4
+  ) {
+    throw new Error(`Unexpected pagination: ${JSON.stringify(result)}`);
   }
   if (
     !result.forwardText ||
