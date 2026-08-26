@@ -2797,7 +2797,7 @@ export class OPFView implements Vgen.CustomRendererFactory {
     const frame: Task.Frame<PageAndPosition | null> = Task.newFrame(
       "rerenderDeferredFollowingSpines",
     );
-    const maxPasses = 1;
+    const maxPasses = 2;
     let passCount = 0;
     let result: PageAndPosition | null = null;
     let preserveTargetSnapshots = false;
@@ -2873,11 +2873,12 @@ export class OPFView implements Vgen.CustomRendererFactory {
               ? {
                   index: viewItem.item.spineIndex,
                   pages: viewItem.pages.length,
-                  text: viewItem.pages.map((page) =>
-                    (page.container.textContent || "")
-                      .replace(/\s+/g, " ")
-                      .trim()
-                      .slice(0, 120),
+                  referenceText: viewItem.pages.flatMap((page) =>
+                    Array.from(
+                      page.container.querySelectorAll(
+                        "[data-vivliostyle-target-counter]",
+                      ),
+                    ).map((node) => node.textContent || ""),
                   ),
                 }
               : null,
