@@ -2797,11 +2797,11 @@ export class OPFView implements Vgen.CustomRendererFactory {
     const frame: Task.Frame<PageAndPosition | null> = Task.newFrame(
       "rerenderDeferredFollowingSpines",
     );
-    const maxPasses = 2;
+    const spineCount = this.opf?.spine?.length || this.spineItems.length;
+    const maxPasses = Math.max(3, spineCount * 2 + 2);
     let passCount = 0;
     let result: PageAndPosition | null = null;
     let preserveTargetSnapshots = false;
-    const passTrace: unknown[] = [];
 
     const clearRelayoutState = (): void => {
       this.relayoutingFollowingSpines = false;
@@ -2823,11 +2823,7 @@ export class OPFView implements Vgen.CustomRendererFactory {
       if (passCount > maxPasses) {
         clearRelayoutState();
         frame.task.raise(
-          new Error(
-            `Cross-reference pagination did not stabilize: ${JSON.stringify(
-              passTrace,
-            )}`,
-          ),
+          new Error("Cross-reference pagination did not stabilize"),
           frame.parent,
         );
         return;
@@ -2835,7 +2831,6 @@ export class OPFView implements Vgen.CustomRendererFactory {
 
       this.relayoutingFollowingSpines = true;
       this.relayoutingFollowingSpineStart = firstSpine;
-      const preservedForPass = preserveTargetSnapshots;
       const lastInvalidatedSpine = this.relayoutDeferredFollowingSpines(
         preserveTargetSnapshots,
       );
@@ -2863,27 +2858,6 @@ export class OPFView implements Vgen.CustomRendererFactory {
           // "??" -> "9" -> "??" instead of converging to "8".
           preserveTargetSnapshots = true;
         }
-        passTrace.push({
-          firstSpine,
-          preservedForPass,
-          firstChangedSourceSpine,
-          deferredStart: this.deferredFollowingSpineRelayoutStart,
-          spines: this.spineItems.map((viewItem) =>
-            viewItem
-              ? {
-                  index: viewItem.item.spineIndex,
-                  pages: viewItem.pages.length,
-                  referenceText: viewItem.pages.flatMap((page) =>
-                    Array.from(
-                      page.container.querySelectorAll(
-                        "[data-vivliostyle-target-counter]",
-                      ),
-                    ).map((node) => node.textContent || ""),
-                  ),
-                }
-              : null,
-          ),
-        });
         runNextPass();
       });
     };
