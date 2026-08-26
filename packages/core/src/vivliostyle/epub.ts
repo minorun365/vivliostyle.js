@@ -2736,7 +2736,11 @@ export class OPFView implements Vgen.CustomRendererFactory {
       inputPositionOffset,
       pos?.highestSeenOffset ?? null,
     );
-    if (debugRenderCount === 9) {
+    if (
+      pageIndexToRender === 2 &&
+      !this.isInCounterResolveScope() &&
+      debugRenderCount > 3
+    ) {
       const flowState = Object.fromEntries(
         Object.entries(pos?.flowPositions ?? {}).map(([name, flow]) => [
           name,
