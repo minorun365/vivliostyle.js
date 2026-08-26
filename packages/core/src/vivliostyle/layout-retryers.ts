@@ -29,6 +29,7 @@ export abstract class AbstractLayoutRetryer {
   initialPosition: Vtree.NodeContext | null = null;
   initialFragmentLayoutConstraints: Layout.FragmentLayoutConstraint[] | null =
     null;
+  private debugRetryCount = 0;
 
   layout(
     nodeContext: Vtree.NodeContext,
@@ -42,6 +43,13 @@ export abstract class AbstractLayoutRetryer {
     nodeContext: Vtree.NodeContext,
     column: Layout.Column,
   ): Task.Result<Vtree.NodeContext | null> {
+    this.debugRetryCount++;
+    if (this.debugRetryCount > 100) {
+      const node = nodeContext.viewNode;
+      throw new Error(
+        `PR2132 layout retry stalled node=${node?.nodeName} text=${node?.textContent?.slice(0, 80)} offset=${nodeContext.offsetInNode} after=${nodeContext.after} constraints=${column.fragmentLayoutConstraints.map((constraint) => constraint.constructor.name).join(",")}`,
+      );
+    }
     const frame = Task.newFrame<Vtree.NodeContext | null>(
       "AbstractLayoutRetryer.tryLayout",
     );
