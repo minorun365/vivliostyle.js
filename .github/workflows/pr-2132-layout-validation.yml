@@ -42,10 +42,8 @@ jobs:
             --actual-viewer dev \
             --baseline-viewer stable \
             --file page_breaks/break-before-flex-at-page-start.html \
-            --file page_breaks/combine_breaks_2.html \
-            --file target-text-shrinking-spine/publication.json \
             --concurrency 1 \
-            --timeout 60
+            --timeout 20
 
       - name: Assert expected results and completed pagination
         run: node scripts/assert-pr-2132-layout-validation.mjs

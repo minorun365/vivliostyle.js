@@ -1354,6 +1354,17 @@ export class CounterStore {
           oldPageIndex &&
           oldPageIndex.pageIndex > pageIndex &&
           !this.targetsMovedEarlierAfterPageBreak.has(id);
+        if (id === "target") {
+          console.log(
+            "PR2132 finishPage",
+            id,
+            oldPageIndex?.pageIndex,
+            pageIndex,
+            movedLater,
+            movedEarlierAfterPageBreak,
+            this.targetsMovedEarlierAfterPageBreak.has(id),
+          );
+        }
         if (movedEarlierAfterPageBreak) {
           this.targetsMovedEarlierAfterPageBreak.add(id);
         }
@@ -1963,7 +1974,11 @@ export class CounterStore {
     // Keep the anti-oscillation guarantee introduced by b0288a35: a target
     // gets one exception for a page break that has already been satisfied,
     // but cannot repeatedly alternate between earlier and later pages.
-    if (this.targetsMovedEarlierAfterPageBreak.has(id)) {
+    const alreadyMoved = this.targetsMovedEarlierAfterPageBreak.has(id);
+    if (id === "target") {
+      console.log("PR2132 canMoveEarlier", id, alreadyMoved);
+    }
+    if (alreadyMoved) {
       return false;
     }
     return true;

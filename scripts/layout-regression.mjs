@@ -1777,6 +1777,12 @@ async function captureOneSide({
       // is intentionally preserved to reduce redundant network fetches.
       await context.clearCookies();
       page = await context.newPage();
+      page.on("console", (message) => {
+        const text = message.text();
+        if (text.startsWith("PR2132")) {
+          console.log(text);
+        }
+      });
       await page.addInitScript(() => {
         try {
           localStorage.clear();
