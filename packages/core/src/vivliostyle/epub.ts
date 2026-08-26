@@ -2727,8 +2727,23 @@ export class OPFView implements Vgen.CustomRendererFactory {
       inCounterResolveScopeAtStart,
     );
 
+    const inputPositionOffset = pos
+      ? viewItem.instance.getPosition(pos, true)
+      : null;
+    console.log(
+      "PR2132 layoutNextPage start",
+      pageIndexToRender,
+      inputPositionOffset,
+      pos?.highestSeenOffset ?? null,
+    );
     viewItem.instance.layoutNextPage(page, pos).then((posParam) => {
       pos = posParam;
+      console.log(
+        "PR2132 layoutNextPage finish",
+        pageIndexToRender,
+        pos ? viewItem.instance.getPosition(pos, true) : null,
+        pos?.highestSeenOffset ?? null,
+      );
       if (!pos) {
         // A rerender can make the final page move to an earlier slot. Remove
         // stale following pages and their saved starts before storing the new
