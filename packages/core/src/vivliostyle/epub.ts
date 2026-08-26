@@ -2301,15 +2301,6 @@ export class OPFView implements Vgen.CustomRendererFactory {
             );
             this.counterStore.popPageCounters();
             this.counterStore.popReferencesToSolve();
-            const continueLoopAfterDeferredReferences = () => {
-              const rerenderedTargetPage = result.pageAndPosition.page;
-              this.resolveDeferredReferencesAfterCounterScope(
-                targetViewItem,
-                rerenderedTargetPage,
-                result.pageAndPosition.position.pageIndex,
-                result.nextLayoutPosition,
-              ).then(() => loopFrame.continueLoop());
-            };
             if (
               result.pageAndPosition.position.spineIndex ===
                 currentPage.spineIndex &&
@@ -2419,7 +2410,7 @@ export class OPFView implements Vgen.CustomRendererFactory {
                     this.counterStore.currentPageCounters =
                       savedCountersBeforePending;
                   }
-                  continueLoopAfterDeferredReferences();
+                  loopFrame.continueLoop();
                 },
               );
               return;
@@ -2431,7 +2422,7 @@ export class OPFView implements Vgen.CustomRendererFactory {
             if (isCrossSpine) {
               this.markSpineItemCompleteIfReady(targetViewItem);
             }
-            continueLoopAfterDeferredReferences();
+            loopFrame.continueLoop();
           });
         });
       })
@@ -2459,30 +2450,21 @@ export class OPFView implements Vgen.CustomRendererFactory {
     return frame.result();
   }
 
-  private resolveDeferredReferencesAfterCounterScope(
-    viewItem: OPFViewItem,
-    page: Vtree.Page,
-    pageIndex: number,
-    nextLayoutPosition: Vtree.LayoutPosition | null,
-  ): Task.Result<Vtree.Page> {
-    // A target page may be rerendered several scopes deep. Processing its
-    // newly invalidated references immediately after the innermost pop still
-    // hits the #1686 recursion guard because an outer counter scope remains.
-    // Keep the page until the outermost scope is restored, then drain all
-    // deferred pages in order.
-    this.deferReferencesForPage(viewItem, page, pageIndex, nextLayoutPosition);
-    const deferredReferencePages = (this.deferredReferencePages ??= []);
-
+  private resolveDeferredReferencesAfterLayout(): Task.Result<boolean> {
     if (
       this.isInCounterResolveScope() ||
       this.resolvingDeferredReferences ||
-      deferredReferencePages.length === 0
+      this.deferredReferencePages.length === 0
     ) {
-      return Task.newResult(page);
+      return Task.newResult(false);
     }
 
-    const frame: Task.Frame<Vtree.Page> = Task.newFrame(
-      "resolveDeferredReferencesAfterCounterScope",
+    // Process only the pages that were pending at the beginning of this
+    // stabilization pass. References invalidated by these rerenders stay in
+    // the main queue for the next pass, preserving the #1686 recursion guard.
+    const deferredReferencePages = this.deferredReferencePages.splice(0);
+    const frame: Task.Frame<boolean> = Task.newFrame(
+      "resolveDeferredReferencesAfterLayout",
     );
     this.resolvingDeferredReferences = true;
     frame.handler = (handlerFrame, err) => {
@@ -2511,7 +2493,7 @@ export class OPFView implements Vgen.CustomRendererFactory {
       })
       .then(() => {
         this.resolvingDeferredReferences = false;
-        frame.finish(page);
+        frame.finish(true);
       });
     return frame.result();
   }
@@ -2825,19 +2807,6 @@ export class OPFView implements Vgen.CustomRendererFactory {
       "renderPage",
       (frame) => {
         this.renderPageTracked(position).then((result) => {
-          const firstSpine = this.deferredFollowingSpineRelayoutStart;
-          if (firstSpine != null && firstSpine <= position.spineIndex) {
-            // Reference resolution can shrink an earlier spine while a later
-            // spine is being rendered. Recreate the affected suffix only
-            // after the current render has unwound, then retry through the
-            // originally requested position with corrected offsets/parity.
-            this.relayoutDeferredFollowingSpines();
-            this.renderPagesUpto(position, false).then((rerenderedResult) => {
-              endRendering();
-              frame.finish(rerenderedResult);
-            });
-            return;
-          }
           endRendering();
           frame.finish(result);
         });
@@ -2956,33 +2925,68 @@ export class OPFView implements Vgen.CustomRendererFactory {
   renderAllPages(): Task.Result<PageAndPosition | null> {
     const frame: Task.Frame<PageAndPosition | null> =
       Task.newFrame("renderAllPages");
-    this.renderPagesUpto(
-      {
-        spineIndex: this.opf.spine.length - 1,
-        pageIndex: Number.POSITIVE_INFINITY,
-        offsetInItem: -1,
-      },
-      false,
-    ).then((result) => {
-      // Wait until all images are loaded (Issue #1321)
+    const finalPosition = {
+      spineIndex: this.opf.spine.length - 1,
+      pageIndex: Number.POSITIVE_INFINITY,
+      offsetInItem: -1,
+    };
+    let result: PageAndPosition | null = null;
+    let stabilizationPass = 0;
+    this.renderPagesUpto(finalPosition, false).then((initialResult) => {
+      result = initialResult;
       frame
         .loopWithFrame((loopFrame) => {
-          if (
-            this.spineItems.some((viewItem) =>
-              viewItem?.pages.some((page) =>
-                page?.fetchers.some((fetcher) => !fetcher.arrived),
-              ),
-            )
-          ) {
-            frame.sleep(100).then(() => {
-              loopFrame.continueLoop();
-            });
-          } else {
+          const hasDeferredReferences = this.deferredReferencePages.length > 0;
+          const hasDeferredFollowingSpines =
+            this.deferredFollowingSpineRelayoutStart != null;
+          if (!hasDeferredReferences && !hasDeferredFollowingSpines) {
             loopFrame.breakLoop();
+            return;
           }
+          if (stabilizationPass++ >= 8) {
+            console.warn(
+              "Deferred cross-reference pagination did not stabilize after 8 passes",
+            );
+            this.deferredReferencePages.splice(0);
+            this.deferredFollowingSpineRelayoutStart = null;
+            loopFrame.breakLoop();
+            return;
+          }
+          this.resolveDeferredReferencesAfterLayout().then(() => {
+            if (this.deferredFollowingSpineRelayoutStart == null) {
+              loopFrame.continueLoop();
+              return;
+            }
+            this.relayoutDeferredFollowingSpines();
+            this.renderPagesUpto(finalPosition, false).then(
+              (rerenderedResult) => {
+                result = rerenderedResult;
+                loopFrame.continueLoop();
+              },
+            );
+          });
         })
         .then(() => {
-          frame.finish(result);
+          // Wait until all images are loaded (Issue #1321)
+          frame
+            .loopWithFrame((loopFrame) => {
+              if (
+                this.spineItems.some((viewItem) =>
+                  viewItem?.pages.some((page) =>
+                    page?.fetchers.some((fetcher) => !fetcher.arrived),
+                  ),
+                )
+              ) {
+                frame.sleep(100).then(() => {
+                  loopFrame.continueLoop();
+                });
+              } else {
+                loopFrame.breakLoop();
+              }
+            })
+            .then(() => {
+              frame.finish(result);
+            });
         });
     });
     return frame.result();
