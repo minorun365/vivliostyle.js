@@ -2730,6 +2730,10 @@ export class OPFView implements Vgen.CustomRendererFactory {
     const inputPositionOffset = pos
       ? viewItem.instance.getPosition(pos, true)
       : null;
+    const debugFinalRemainder =
+      pageIndexToRender === 2 &&
+      !this.isInCounterResolveScope() &&
+      debugRenderCount > 3;
     console.log(
       "PR2132 layoutNextPage start",
       pageIndexToRender,
@@ -2791,6 +2795,9 @@ export class OPFView implements Vgen.CustomRendererFactory {
           )
           .then((resolvedPage) => {
             restorePageNumberContext();
+            if (debugFinalRemainder) {
+              throw new Error("PR2132 final renderSinglePage completed");
+            }
             frame.finish({
               pageAndPosition: makePageAndPosition(resolvedPage, pageIndex),
               nextLayoutPosition: pos,
