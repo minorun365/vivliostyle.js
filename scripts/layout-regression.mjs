@@ -1521,6 +1521,16 @@ async function collectPr2132Diagnostics(page) {
       // Ignore frames that are navigating or no longer attached.
     }
   }
+  for (const worker of page.workers()) {
+    try {
+      const value = await worker.evaluate(() => globalThis.__pr2132 ?? null);
+      if (value) {
+        diagnostics.push({ url: worker.url(), value });
+      }
+    } catch {
+      // Ignore workers that have already stopped.
+    }
+  }
   return diagnostics;
 }
 
