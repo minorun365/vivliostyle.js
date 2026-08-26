@@ -2736,12 +2736,12 @@ export class OPFView implements Vgen.CustomRendererFactory {
       inputPositionOffset,
       pos?.highestSeenOffset ?? null,
     );
-    if (
+    const debugFinalRemainder =
       pageIndexToRender === 2 &&
       !this.isInCounterResolveScope() &&
-      debugRenderCount > 3
-    ) {
-      const flowState = Object.fromEntries(
+      debugRenderCount > 3;
+    const debugInputFlowState = debugFinalRemainder
+      ? Object.fromEntries(
         Object.entries(pos?.flowPositions ?? {}).map(([name, flow]) => [
           name,
           {
@@ -2765,11 +2765,8 @@ export class OPFView implements Vgen.CustomRendererFactory {
             }),
           },
         ]),
-      );
-      throw new Error(
-        `PR2132 render-9 input page=${pageIndexToRender} offset=${inputPositionOffset} highest=${pos?.highestSeenOffset ?? null} flows=${JSON.stringify(flowState)}`,
-      );
-    }
+      )
+      : null;
     viewItem.instance.layoutNextPage(page, pos).then((posParam) => {
       pos = posParam;
       console.log(
@@ -2778,6 +2775,11 @@ export class OPFView implements Vgen.CustomRendererFactory {
         pos ? viewItem.instance.getPosition(pos, true) : null,
         pos?.highestSeenOffset ?? null,
       );
+      if (debugFinalRemainder) {
+        throw new Error(
+          `PR2132 final remainder finished input=${inputPositionOffset} output=${pos ? viewItem.instance.getPosition(pos, true) : null} flows=${JSON.stringify(debugInputFlowState)}`,
+        );
+      }
       if (!pos) {
         // A rerender can make the final page move to an earlier slot. Remove
         // stale following pages and their saved starts before storing the new
