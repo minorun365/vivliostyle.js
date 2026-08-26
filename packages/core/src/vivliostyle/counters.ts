@@ -1350,6 +1350,32 @@ export class CounterStore {
 
         const oldPageIndex = this.pageIndicesById[id];
         if (id.endsWith("target")) {
+          const debugFinishCount = (((this as any).__pr2132FinishCount ?? 0) +
+            1) as number;
+          (this as any).__pr2132FinishCount = debugFinishCount;
+          if (debugFinishCount === 5) {
+            throw new Error(
+              `PR2132 state ${JSON.stringify({
+                oldPageIndex,
+                pageIndex,
+                moved: this.targetsMovedEarlierAfterPageBreak.has(id),
+                unresolved: this.unresolvedReferences[id]?.map((ref) => ({
+                  resolved: ref.isResolved(),
+                  spineIndex: ref.spineIndex,
+                  pageIndex: ref.pageIndex,
+                })),
+                resolved: this.resolvedReferences[id]?.map((ref) => ({
+                  resolved: ref.isResolved(),
+                  spineIndex: ref.spineIndex,
+                  pageIndex: ref.pageIndex,
+                })),
+                referencesToSolve: this.referencesToSolve.length,
+                referencesToSolveStack: this.referencesToSolveStack.length,
+                newReferencesOfCurrentPage:
+                  this.newReferencesOfCurrentPage.length,
+              })}`,
+            );
+          }
           console.log(
             "PR2132 finishPage",
             id,
