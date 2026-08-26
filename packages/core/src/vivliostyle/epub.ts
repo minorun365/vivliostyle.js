@@ -2802,6 +2802,7 @@ export class OPFView implements Vgen.CustomRendererFactory {
     let passCount = 0;
     let result: PageAndPosition | null = null;
     let preserveTargetSnapshots = false;
+    const passTrace: unknown[] = [];
 
     const clearRelayoutState = (): void => {
       this.relayoutingFollowingSpines = false;
@@ -2823,7 +2824,11 @@ export class OPFView implements Vgen.CustomRendererFactory {
       if (passCount > maxPasses) {
         clearRelayoutState();
         frame.task.raise(
-          new Error("Cross-reference pagination did not stabilize"),
+          new Error(
+            `Cross-reference pagination did not stabilize: ${JSON.stringify(
+              passTrace,
+            )}`,
+          ),
           frame.parent,
         );
         return;
@@ -2831,6 +2836,7 @@ export class OPFView implements Vgen.CustomRendererFactory {
 
       this.relayoutingFollowingSpines = true;
       this.relayoutingFollowingSpineStart = firstSpine;
+      const preservedForPass = preserveTargetSnapshots;
       const lastInvalidatedSpine = this.relayoutDeferredFollowingSpines(
         preserveTargetSnapshots,
       );
@@ -2858,6 +2864,26 @@ export class OPFView implements Vgen.CustomRendererFactory {
           // "??" -> "9" -> "??" instead of converging to "8".
           preserveTargetSnapshots = true;
         }
+        passTrace.push({
+          firstSpine,
+          preservedForPass,
+          firstChangedSourceSpine,
+          deferredStart: this.deferredFollowingSpineRelayoutStart,
+          spines: this.spineItems.map((viewItem) =>
+            viewItem
+              ? {
+                  index: viewItem.item.spineIndex,
+                  pages: viewItem.pages.length,
+                  text: viewItem.pages.map((page) =>
+                    (page.container.textContent || "")
+                      .replace(/\s+/g, " ")
+                      .trim()
+                      .slice(0, 120),
+                  ),
+                }
+              : null,
+          ),
+        });
         runNextPass();
       });
     };
