@@ -450,6 +450,10 @@ module.exports = [
           "target-text() reflow across WebPub spine navigation (Issue #1856)",
       },
       {
+        file: "target-text-shrinking-spine/publication.json",
+        title: "target-text() reflow that shrinks an earlier WebPub spine",
+      },
+      {
         file: "target-text-vs-named-strings.html",
         title: "target-text() vs Named Strings",
       },
