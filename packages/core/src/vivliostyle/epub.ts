@@ -2775,11 +2775,6 @@ export class OPFView implements Vgen.CustomRendererFactory {
         pos ? viewItem.instance.getPosition(pos, true) : null,
         pos?.highestSeenOffset ?? null,
       );
-      if (debugFinalRemainder) {
-        throw new Error(
-          `PR2132 final remainder finished input=${inputPositionOffset} output=${pos ? viewItem.instance.getPosition(pos, true) : null} flows=${JSON.stringify(debugInputFlowState)}`,
-        );
-      }
       if (!pos) {
         // A rerender can make the final page move to an earlier slot. Remove
         // stale following pages and their saved starts before storing the new
@@ -2799,6 +2794,11 @@ export class OPFView implements Vgen.CustomRendererFactory {
       const pageIndex = pos ? pos.page - 1 : pageIndexToRender;
       this.finishPageContainer(viewItem, page, pageIndex);
       this.counterStore.finishPage(page.spineIndex, pageIndex);
+      if (debugFinalRemainder) {
+        throw new Error(
+          `PR2132 final remainder stored input=${inputPositionOffset} output=${pos ? viewItem.instance.getPosition(pos, true) : null} flows=${JSON.stringify(debugInputFlowState)}`,
+        );
+      }
 
       const collectResult = Plugin.getHooksForName(
         Plugin.HOOKS.PAGINATION_PROGRESS,
