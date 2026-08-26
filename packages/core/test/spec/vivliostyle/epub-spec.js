@@ -473,6 +473,7 @@ describe("epub", function () {
         var view = Object.create(adapt_epub.OPFView.prototype);
         var page = { spineIndex: 0, offset: 0, fetchers: [] };
         var viewItem = {
+          item: { spineIndex: 0 },
           layoutPositions: new Array(17).fill(null),
           pages: Array.from({ length: 17 }, function () {
             return { container: { remove: function () {} } };
@@ -489,6 +490,8 @@ describe("epub", function () {
             },
           },
         };
+        view.spineItems = [viewItem];
+        view.spineItemLoadingContinuations = [null];
         view.counterStore = { finishPage: function () {} };
         view.isInCounterResolveScope = function () {
           return false;
@@ -524,6 +527,75 @@ describe("epub", function () {
       });
     });
 
+    it("discards following spines after an earlier spine shrinks", function () {
+      var view = Object.create(adapt_epub.OPFView.prototype);
+      var sourcePage = { container: { remove: jasmine.createSpy() } };
+      var followingPage1 = { container: { remove: jasmine.createSpy() } };
+      var followingPage2 = { container: { remove: jasmine.createSpy() } };
+      var sourceItem = { pages: [sourcePage] };
+      var followingItem1 = { pages: [followingPage1] };
+      var followingItem2 = { pages: [followingPage2] };
+      view.spineItems = [sourceItem, followingItem1, followingItem2];
+      view.spineItemLoadingContinuations = [[], [], []];
+
+      view.deferFollowingSpinesForRelayout(0);
+      view.relayoutDeferredFollowingSpines();
+
+      expect(view.spineItems[0]).toBe(sourceItem);
+      expect(view.spineItems[1]).toBeNull();
+      expect(view.spineItems[2]).toBeNull();
+      expect(sourcePage.container.remove).not.toHaveBeenCalled();
+      expect(followingPage1.container.remove).toHaveBeenCalled();
+      expect(followingPage2.container.remove).toHaveBeenCalled();
+      expect(view.spineItemLoadingContinuations[1]).toBeNull();
+      expect(view.spineItemLoadingContinuations[2]).toBeNull();
+    });
+
+    it("keeps the earliest following spine queued for relayout", function () {
+      var view = Object.create(adapt_epub.OPFView.prototype);
+      view.spineItems = [];
+      view.spineItemLoadingContinuations = [];
+
+      view.deferFollowingSpinesForRelayout(3);
+      view.deferFollowingSpinesForRelayout(1);
+
+      expect(view.deferredFollowingSpineRelayoutStart).toBe(2);
+    });
+
+    it("retries through the requested spine after deferred suffix invalidation", function (done) {
+      adapt_task.start(function () {
+        var view = Object.create(adapt_epub.OPFView.prototype);
+        var position = {
+          spineIndex: 2,
+          pageIndex: Number.POSITIVE_INFINITY,
+          offsetInItem: -1,
+        };
+        var initialResult = { id: "initial" };
+        var rerenderedResult = { id: "rerendered" };
+        view.renderingPageTasks = new Map();
+        view.deferredFollowingSpineRelayoutStart = 1;
+        spyOn(view, "renderPageTracked").and.returnValue(
+          adapt_task.newResult(initialResult),
+        );
+        spyOn(view, "relayoutDeferredFollowingSpines").and.callFake(
+          function () {
+            view.deferredFollowingSpineRelayoutStart = null;
+          },
+        );
+        spyOn(view, "renderPagesUpto").and.returnValue(
+          adapt_task.newResult(rerenderedResult),
+        );
+
+        view.renderPage(position).then(function (result) {
+          expect(view.relayoutDeferredFollowingSpines).toHaveBeenCalled();
+          expect(view.renderPagesUpto).toHaveBeenCalledWith(position, false);
+          expect(result).toBe(rerenderedResult);
+          expect(view.renderingPageTasks.size).toBe(0);
+          done();
+        });
+        return adapt_task.newResult(true);
+      });
+    });
     it("resolves references deferred by a nested counter scope", function (done) {
       adapt_task.start(function () {
         var view = Object.create(adapt_epub.OPFView.prototype);
