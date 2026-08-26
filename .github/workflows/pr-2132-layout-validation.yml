@@ -39,6 +39,13 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          yarn test:layout-regression \
+            --actual-viewer dev \
+            --baseline-viewer stable \
+            --file target-text-shrinking-spine/publication.json \
+            --out-dir artifacts/layout-regression-warmup \
+            --concurrency 1 \
+            --timeout 180
           for attempt in 1 2 3 4 5; do
             yarn test:layout-regression \
               --actual-viewer dev \
