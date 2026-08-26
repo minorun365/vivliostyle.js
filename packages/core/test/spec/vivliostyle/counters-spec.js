@@ -105,4 +105,59 @@ describe("cross-reference layout constraint", function () {
       false,
     );
   });
+
+  it("drops only references whose source spine will be rebuilt", function () {
+    const store = new Counters.CounterStore(documentURLTransformer);
+    const earlierResolved = new Counters.TargetCounterReference("target", true);
+    earlierResolved.spineIndex = 0;
+    const discardedResolved = new Counters.TargetCounterReference(
+      "target",
+      true,
+    );
+    discardedResolved.spineIndex = 2;
+    const earlierUnresolved = new Counters.TargetCounterReference(
+      "target",
+      false,
+    );
+    earlierUnresolved.spineIndex = 1;
+    const discardedUnresolved = new Counters.TargetCounterReference(
+      "target",
+      false,
+    );
+    discardedUnresolved.spineIndex = 3;
+    const targetCounters = { page: [9] };
+    const targetText = { content: "target" };
+
+    store.resolvedReferences.target = [earlierResolved, discardedResolved];
+    store.unresolvedReferences.target = [
+      earlierUnresolved,
+      discardedUnresolved,
+    ];
+    store.pageIndicesById.target = { spineIndex: 2, pageIndex: 0 };
+    store.pageCountersById.target = targetCounters;
+    store.pageTextById.target = targetText;
+    store.namedStringPageSnapshots[10] = {
+      lastOffset: 19,
+      spineIndex: 1,
+      counters: { page: [3] },
+    };
+    store.namedStringPageSnapshots[20] = {
+      lastOffset: 29,
+      spineIndex: 2,
+      counters: { page: [4] },
+    };
+
+    store.discardReferencesFromSpine(2);
+
+    expect(store.resolvedReferences.target).toEqual([earlierResolved]);
+    expect(store.unresolvedReferences.target).toEqual([earlierUnresolved]);
+    expect(store.pageIndicesById.target).toEqual({
+      spineIndex: 2,
+      pageIndex: 0,
+    });
+    expect(store.pageCountersById.target).toBe(targetCounters);
+    expect(store.pageTextById.target).toBe(targetText);
+    expect(store.namedStringPageSnapshots[10]).toBeDefined();
+    expect(store.namedStringPageSnapshots[20]).toBeUndefined();
+  });
 });
