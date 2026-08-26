@@ -2737,8 +2737,33 @@ export class OPFView implements Vgen.CustomRendererFactory {
       pos?.highestSeenOffset ?? null,
     );
     if (debugRenderCount === 9) {
+      const flowState = Object.fromEntries(
+        Object.entries(pos?.flowPositions ?? {}).map(([name, flow]) => [
+          name,
+          {
+            startBreakType: flow.startBreakType,
+            breakAfter: flow.breakAfter,
+            positions: flow.positions.map((position) => {
+              const primary = position.chunkPosition.primary;
+              const node = primary.steps[0]?.node;
+              return {
+                chunkStartOffset: position.flowChunk.startOffset,
+                breakBefore: position.flowChunk.breakBefore,
+                offsetInNode: primary.offsetInNode,
+                after: primary.after,
+                nodeName: node?.nodeName,
+                nodeId:
+                  node?.nodeType === 1
+                    ? (node as Element).getAttribute("id")
+                    : null,
+                text: node?.textContent?.slice(0, 80),
+              };
+            }),
+          },
+        ]),
+      );
       throw new Error(
-        `PR2132 render-9 input page=${pageIndexToRender} offset=${inputPositionOffset} highest=${pos?.highestSeenOffset ?? null}`,
+        `PR2132 render-9 input page=${pageIndexToRender} offset=${inputPositionOffset} highest=${pos?.highestSeenOffset ?? null} flows=${JSON.stringify(flowState)}`,
       );
     }
     viewItem.instance.layoutNextPage(page, pos).then((posParam) => {
