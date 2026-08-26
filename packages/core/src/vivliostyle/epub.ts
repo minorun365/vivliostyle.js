@@ -2723,6 +2723,10 @@ export class OPFView implements Vgen.CustomRendererFactory {
       pageIndexToRender > 0 ? viewItem.pages[pageIndexToRender - 1] : null;
     const nextExistingPage = viewItem.pages[pageIndexToRender + 1];
     let page = this.makePage(viewItem, pos);
+    page.container.setAttribute(
+      "data-pr2132-diagnostics",
+      JSON.stringify({ ...renderDiagnostics, targetState }),
+    );
     this.resolvePageTypeForRenderSlot(
       viewItem,
       page,

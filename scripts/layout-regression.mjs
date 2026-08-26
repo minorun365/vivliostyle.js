@@ -1511,6 +1511,20 @@ async function collectPr2132Diagnostics(page) {
   } catch {
     // Fall through to frame-local diagnostics.
   }
+  try {
+    const pageStates = await page.evaluate(() =>
+      Array.from(document.querySelectorAll("[data-pr2132-diagnostics]")).map(
+        (element) => element.getAttribute("data-pr2132-diagnostics"),
+      ),
+    );
+    for (const state of pageStates) {
+      if (state) {
+        diagnostics.push({ url: page.url(), value: JSON.parse(state) });
+      }
+    }
+  } catch {
+    // Ignore partially replaced page containers.
+  }
   for (const frame of page.frames()) {
     try {
       const value = await frame.evaluate(() => globalThis.__pr2132 ?? null);
@@ -1841,6 +1855,7 @@ async function captureOneSide({
       const comparableError = toComparableError(err);
       if (diagnostics.length > 0) {
         comparableError.diagnostics = diagnostics;
+        comparableError.message += ` PR2132 ${JSON.stringify(diagnostics)}`;
       }
       return { ok: false, error: comparableError };
     } finally {
@@ -1886,6 +1901,7 @@ async function captureOneSide({
     const comparableError = toComparableError(err);
     if (diagnostics.length > 0) {
       comparableError.diagnostics = diagnostics;
+      comparableError.message += ` PR2132 ${JSON.stringify(diagnostics)}`;
     }
     return { ok: false, error: comparableError };
   } finally {
