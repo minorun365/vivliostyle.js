@@ -1853,13 +1853,14 @@ async function captureOneSide({
 
   // Legacy path: one context per capture
   let context;
+  let page;
   try {
     context = await browser.newContext({
       viewport: { width: viewportWidth, height: viewportHeight },
       // Use device scale factor 2 to get more accurate pixel diffs.
       deviceScaleFactor: 2,
     });
-    const page = await context.newPage();
+    page = await context.newPage();
     const captured = await capturePages({
       page,
       url,
@@ -1871,7 +1872,12 @@ async function captureOneSide({
     });
     return { ok: true, ...captured };
   } catch (err) {
-    return { ok: false, error: toComparableError(err) };
+    const diagnostics = page ? await collectPr2132Diagnostics(page) : [];
+    const comparableError = toComparableError(err);
+    if (diagnostics.length > 0) {
+      comparableError.diagnostics = diagnostics;
+    }
+    return { ok: false, error: comparableError };
   } finally {
     await closeContextSafely(context, timeoutMs);
   }
