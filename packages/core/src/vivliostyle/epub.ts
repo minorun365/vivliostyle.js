@@ -1620,6 +1620,7 @@ export class OPFView implements Vgen.CustomRendererFactory {
   private deferredReferencePages: DeferredReferencePage[] = [];
   private resolvingDeferredReferences: boolean = false;
   private deferredFollowingSpineRelayoutStart: number | null = null;
+  private relayoutingFollowingSpines: boolean = false;
   private paginationProgress = {
     totalOffsetsBySpine: [] as number[],
     renderedOffsetsBySpine: [] as number[],
@@ -2642,7 +2643,7 @@ export class OPFView implements Vgen.CustomRendererFactory {
         viewItem.pages.splice(finalLength);
         viewItem.layoutPositions.splice(finalLength);
         viewItem.pageCounterStarts.splice(finalLength);
-        if (pageCountChanged) {
+        if (pageCountChanged && !this.relayoutingFollowingSpines) {
           this.deferFollowingSpinesForRelayout(viewItem.item.spineIndex);
         }
       }
@@ -2949,53 +2950,45 @@ export class OPFView implements Vgen.CustomRendererFactory {
       offsetInItem: -1,
     };
     let result: PageAndPosition | null = null;
-    let stabilizationPass = 0;
+    frame.handler = (handlerFrame, err) => {
+      this.relayoutingFollowingSpines = false;
+      handlerFrame.task.raise(err, handlerFrame.parent);
+    };
     this.renderPagesUpto(finalPosition, false).then((initialResult) => {
       result = initialResult;
-      frame
-        .loopWithFrame((loopFrame) => {
-          if (this.deferredFollowingSpineRelayoutStart == null) {
-            loopFrame.breakLoop();
-            return;
-          }
-          if (stabilizationPass++ >= 8) {
-            console.warn(
-              "Following-spine pagination did not stabilize after 8 passes",
-            );
-            this.deferredFollowingSpineRelayoutStart = null;
-            loopFrame.breakLoop();
-            return;
-          }
-          this.relayoutDeferredFollowingSpines();
-          this.renderPagesUpto(finalPosition, false).then(
-            (rerenderedResult) => {
-              result = rerenderedResult;
-              loopFrame.continueLoop();
-            },
-          );
-        })
-        .then(() => {
-          // Wait until all images are loaded (Issue #1321)
-          frame
-            .loopWithFrame((loopFrame) => {
-              if (
-                this.spineItems.some((viewItem) =>
-                  viewItem?.pages.some((page) =>
-                    page?.fetchers.some((fetcher) => !fetcher.arrived),
-                  ),
-                )
-              ) {
-                frame.sleep(100).then(() => {
-                  loopFrame.continueLoop();
-                });
-              } else {
-                loopFrame.breakLoop();
-              }
-            })
-            .then(() => {
-              frame.finish(result);
-            });
-        });
+      const finishAfterImages = () => {
+        // Wait until all images are loaded (Issue #1321)
+        frame
+          .loopWithFrame((loopFrame) => {
+            if (
+              this.spineItems.some((viewItem) =>
+                viewItem?.pages.some((page) =>
+                  page?.fetchers.some((fetcher) => !fetcher.arrived),
+                ),
+              )
+            ) {
+              frame.sleep(100).then(() => {
+                loopFrame.continueLoop();
+              });
+            } else {
+              loopFrame.breakLoop();
+            }
+          })
+          .then(() => {
+            frame.finish(result);
+          });
+      };
+      if (this.deferredFollowingSpineRelayoutStart == null) {
+        finishAfterImages();
+        return;
+      }
+      this.relayoutDeferredFollowingSpines();
+      this.relayoutingFollowingSpines = true;
+      this.renderPagesUpto(finalPosition, false).then((rerenderedResult) => {
+        this.relayoutingFollowingSpines = false;
+        result = rerenderedResult;
+        finishAfterImages();
+      });
     });
     return frame.result();
   }
