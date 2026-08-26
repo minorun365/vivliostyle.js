@@ -1509,44 +1509,25 @@ export class CounterStore {
   }
 
   /**
-   * Drop page-dependent state owned by spine items that are about to be
-   * rebuilt. References from an earlier spine to a discarded target are kept,
-   * but changed back to unresolved so the rebuilt target can resolve them.
-   * References whose source page is itself discarded must be removed; keeping
-   * them would make reference resolution revisit detached pages indefinitely.
+   * Drop references whose source page belongs to spine items that are about to
+   * be rebuilt. Target snapshots are deliberately retained until the rebuilt
+   * pages overwrite them: invalidating a still-resolved target here would
+   * unnecessarily rerender earlier source pages and can restart the
+   * page-break oscillation that triggered the suffix rebuild.
    */
-  discardPageStateFromSpine(firstSpineIndex: number): void {
+  discardReferencesFromSpine(firstSpineIndex: number): void {
     const targetIds = new Set([
-      ...Object.keys(this.pageIndicesById),
       ...Object.keys(this.resolvedReferences),
       ...Object.keys(this.unresolvedReferences),
     ]);
 
     for (const id of targetIds) {
-      const targetIndex = this.pageIndicesById[id];
-      const targetIsDiscarded =
-        !!targetIndex && targetIndex.spineIndex >= firstSpineIndex;
-      let resolved = (this.resolvedReferences[id] || []).filter(
+      const resolved = (this.resolvedReferences[id] || []).filter(
         (ref) => ref.spineIndex < firstSpineIndex,
       );
       const unresolved = (this.unresolvedReferences[id] || []).filter(
         (ref) => ref.spineIndex < firstSpineIndex,
       );
-
-      if (targetIsDiscarded) {
-        for (const ref of resolved) {
-          ref.unresolve();
-          if (!unresolved.includes(ref)) {
-            unresolved.push(ref);
-          }
-        }
-        resolved = [];
-        delete this.pageCountersById[id];
-        delete this.pageDocCountersById[id];
-        delete this.pageTextById[id];
-        delete this.pageIndicesById[id];
-        this.targetsMovedEarlierAfterPageBreak.delete(id);
-      }
 
       if (resolved.length) {
         this.resolvedReferences[id] = resolved;
