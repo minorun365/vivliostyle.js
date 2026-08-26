@@ -54,14 +54,26 @@ jobs:
             --file target-text-shrinking-spine/publication.json \
             --concurrency 1 \
             --timeout 60
+          for attempt in 1 2 3 4 5; do
+            yarn test:layout-regression \
+              --actual-viewer dev \
+              --baseline-viewer stable \
+              --file target-text-shrinking-spine/publication.json \
+              --out-dir "artifacts/layout-regression-repeat-$attempt" \
+              --concurrency 1 \
+              --timeout 60
+          done
 
       - name: Assert expected results and completed pagination
         run: node scripts/assert-pr-2132-layout-validation.mjs
+
+      - name: Assert five consecutive completed runs
+        run: node scripts/assert-pr-2132-repeat.mjs
 
       - name: Upload comparison report
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: pr-2132-layout-validation
-          path: artifacts/layout-regression/
+          path: artifacts/layout-regression*/
           retention-days: 30
