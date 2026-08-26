@@ -1509,6 +1509,75 @@ export class CounterStore {
   }
 
   /**
+   * Drop page-dependent state owned by spine items that are about to be
+   * rebuilt. References from an earlier spine to a discarded target are kept,
+   * but changed back to unresolved so the rebuilt target can resolve them.
+   * References whose source page is itself discarded must be removed; keeping
+   * them would make reference resolution revisit detached pages indefinitely.
+   */
+  discardPageStateFromSpine(firstSpineIndex: number): void {
+    const targetIds = new Set([
+      ...Object.keys(this.pageIndicesById),
+      ...Object.keys(this.resolvedReferences),
+      ...Object.keys(this.unresolvedReferences),
+    ]);
+
+    for (const id of targetIds) {
+      const targetIndex = this.pageIndicesById[id];
+      const targetIsDiscarded =
+        !!targetIndex && targetIndex.spineIndex >= firstSpineIndex;
+      let resolved = (this.resolvedReferences[id] || []).filter(
+        (ref) => ref.spineIndex < firstSpineIndex,
+      );
+      const unresolved = (this.unresolvedReferences[id] || []).filter(
+        (ref) => ref.spineIndex < firstSpineIndex,
+      );
+
+      if (targetIsDiscarded) {
+        for (const ref of resolved) {
+          ref.unresolve();
+          if (!unresolved.includes(ref)) {
+            unresolved.push(ref);
+          }
+        }
+        resolved = [];
+        delete this.pageCountersById[id];
+        delete this.pageDocCountersById[id];
+        delete this.pageTextById[id];
+        delete this.pageIndicesById[id];
+        this.targetsMovedEarlierAfterPageBreak.delete(id);
+      }
+
+      if (resolved.length) {
+        this.resolvedReferences[id] = resolved;
+      } else {
+        delete this.resolvedReferences[id];
+      }
+      if (unresolved.length) {
+        this.unresolvedReferences[id] = unresolved;
+      } else {
+        delete this.unresolvedReferences[id];
+      }
+    }
+
+    for (const key of Object.keys(this.namedStringPageSnapshots)) {
+      const snapshot = this.namedStringPageSnapshots[parseInt(key, 10)];
+      if (snapshot.spineIndex >= firstSpineIndex) {
+        delete this.namedStringPageSnapshots[parseInt(key, 10)];
+      }
+    }
+
+    const keepEarlierSource = (ref: TargetCounterReference) =>
+      ref.spineIndex < firstSpineIndex;
+    this.newReferencesOfCurrentPage =
+      this.newReferencesOfCurrentPage.filter(keepEarlierSource);
+    this.referencesToSolve = this.referencesToSolve.filter(keepEarlierSource);
+    this.referencesToSolveStack = this.referencesToSolveStack.map((refs) =>
+      refs.filter(keepEarlierSource),
+    );
+  }
+
+  /**
    * Walk through target-counter DOM nodes in the given page containers and
    * update their text content from the current pageCountersById snapshots.
    */

@@ -2567,6 +2567,10 @@ export class OPFView implements Vgen.CustomRendererFactory {
       return;
     }
     this.deferredFollowingSpineRelayoutStart = null;
+    this.deferredReferencePages = this.deferredReferencePages.filter(
+      (entry) => entry.viewItem.item.spineIndex < firstSpine,
+    );
+    this.counterStore.discardPageStateFromSpine(firstSpine);
     for (
       let spineIndex = firstSpine;
       spineIndex < this.spineItems.length;
