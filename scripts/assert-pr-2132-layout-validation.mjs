@@ -70,6 +70,17 @@ if (baselineShrinkingPageCount !== 6) {
   );
 }
 
+const retainedSource = entryFor(
+  "target-counter-retained-source/publication.json",
+);
+assertNoRenderError(retainedSource);
+const retainedSourcePageCount = retainedSource.difference?.actual?.totalPages;
+if (retainedSourcePageCount !== 8) {
+  throw new Error(
+    `Expected the retained-source case to stabilize at 8 pages, got ${retainedSourcePageCount}`,
+  );
+}
+
 console.log(
-  "Validated: corrected three-page result, completed pagination, unchanged combined breaks, and shrinking-spine rendering.",
+  "Validated: corrected page breaks, completed pagination, unchanged combined breaks, shrinking-spine rendering, and retained-source repagination.",
 );

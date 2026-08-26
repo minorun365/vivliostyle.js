@@ -7,17 +7,41 @@ for (let attempt = 1; attempt <= 5; attempt++) {
       "utf8",
     ),
   );
-  const entry = report.entries[0];
-  if (report.summary.timeoutEntries || entry.errors?.length) {
+  const shrinkingSpine = report.entries.find((entry) =>
+    (Array.isArray(entry.file) ? entry.file : [entry.file]).includes(
+      "target-text-shrinking-spine/publication.json",
+    ),
+  );
+  const retainedSource = report.entries.find((entry) =>
+    (Array.isArray(entry.file) ? entry.file : [entry.file]).includes(
+      "target-counter-retained-source/publication.json",
+    ),
+  );
+  if (!shrinkingSpine || !retainedSource) {
+    throw new Error(`Attempt ${attempt} did not report both reference cases`);
+  }
+  if (
+    report.summary.timeoutEntries ||
+    shrinkingSpine.errors?.length ||
+    retainedSource.errors?.length
+  ) {
     throw new Error(
-      `Attempt ${attempt} did not finish: ${JSON.stringify(entry.errors)}`,
+      `Attempt ${attempt} did not finish: ${JSON.stringify([
+        shrinkingSpine.errors,
+        retainedSource.errors,
+      ])}`,
     );
   }
-  if (entry.difference?.actual?.totalPages !== 4) {
+  if (shrinkingSpine.difference?.actual?.totalPages !== 4) {
     throw new Error(
-      `Attempt ${attempt} produced ${entry.difference?.actual?.totalPages} pages instead of 4`,
+      `Attempt ${attempt} produced ${shrinkingSpine.difference?.actual?.totalPages} shrinking-spine pages instead of 4`,
+    );
+  }
+  if (retainedSource.difference?.actual?.totalPages !== 8) {
+    throw new Error(
+      `Attempt ${attempt} produced ${retainedSource.difference?.actual?.totalPages} retained-source pages instead of 8`,
     );
   }
 }
 
-console.log("target-text shrinking spine completed 5 consecutive times");
+console.log("both cross-reference cases completed 5 consecutive times");

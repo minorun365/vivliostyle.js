@@ -52,6 +52,7 @@ jobs:
             --baseline-viewer stable \
             --file page_breaks/break-before-flex-at-page-start.html \
             --file page_breaks/combine_breaks_2.html \
+            --file target-counter-retained-source/publication.json \
             --file target-text-shrinking-spine/publication.json \
             --concurrency 1 \
             --timeout 60
@@ -59,6 +60,7 @@ jobs:
             yarn test:layout-regression \
               --actual-viewer dev \
               --baseline-viewer stable \
+              --file target-counter-retained-source/publication.json \
               --file target-text-shrinking-spine/publication.json \
               --out-dir "artifacts/layout-regression-repeat-$attempt" \
               --concurrency 1 \
@@ -70,6 +72,9 @@ jobs:
 
       - name: Assert forward references use rebuilt target snapshots
         run: node scripts/assert-pr-2132-forward-reference.mjs
+
+      - name: Assert changed retained references are repaginated
+        run: node scripts/assert-pr-2132-retained-source.mjs
 
       - name: Assert five consecutive completed runs
         run: node scripts/assert-pr-2132-repeat.mjs
